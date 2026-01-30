@@ -147,16 +147,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Inject Vega-Lite libraries into page context (bypasses CSP)
     const tabId = sender.tab ? sender.tab.id : null;
     if (tabId) {
+      console.log('Starting Vega-Lite injection for container:', request.containerId);
       injectVegaLiteIntoPage(tabId, request.containerId, request.spec)
-        .then(() => sendResponse({ success: true }))
+        .then(() => {
+          console.log('Vega-Lite injection completed successfully');
+          sendResponse({ success: true });
+        })
         .catch(error => {
           console.error('Vega-Lite injection error:', error);
           sendResponse({ success: false, error: error.message });
         });
-      return true;
+      return true; // Keep channel open for async response
     } else {
       console.error('No tab ID available for Vega-Lite injection');
       sendResponse({ success: false, error: 'No tab ID available' });
+      return true;
     }
   }
   
@@ -538,9 +543,20 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
   const settings = await chrome.storage.sync.get(['vegaSettings']);
   const vegaSettings = settings.vegaSettings || {};
   
-  const vegaUrl = vegaSettings.vegaUrl || 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js';
-  const vegaLiteUrl = vegaSettings.vegaLiteUrl || 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js';
-  const vegaEmbedUrl = vegaSettings.vegaEmbedUrl || 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js';
+  // Primary CDN (jsdelivr)
+  const primaryVegaUrl = vegaSettings.vegaUrl || 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js';
+  const primaryVegaLiteUrl = vegaSettings.vegaLiteUrl || 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js';
+  const primaryVegaEmbedUrl = vegaSettings.vegaEmbedUrl || 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js';
+  
+  // Fallback CDNs (unpkg - often works better with VPNs)
+  const fallbackVegaUrl = 'https://unpkg.com/vega@5/build/vega.min.js';
+  const fallbackVegaLiteUrl = 'https://unpkg.com/vega-lite@5/build/vega-lite.min.js';
+  const fallbackVegaEmbedUrl = 'https://unpkg.com/vega-embed@6/build/vega-embed.min.js';
+  
+  // Use primary URLs, but will fallback if they fail
+  const vegaUrl = primaryVegaUrl;
+  const vegaLiteUrl = primaryVegaLiteUrl;
+  const vegaEmbedUrl = primaryVegaEmbedUrl;
   
   // Inject a script into the page context that loads Vega-Lite and renders the chart
   // Content scripts share the page DOM, so the container should be accessible
@@ -550,8 +566,8 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
       world: 'MAIN', // Inject into page context (bypasses CSP restrictions)
-      args: [containerId, spec, vegaUrl, vegaLiteUrl, vegaEmbedUrl],
-      func: function(containerId, spec, vegaUrl, vegaLiteUrl, vegaEmbedUrl) {
+      args: [containerId, spec, vegaUrl, vegaLiteUrl, vegaEmbedUrl, fallbackVegaUrl, fallbackVegaLiteUrl, fallbackVegaEmbedUrl],
+      func: function(containerId, spec, vegaUrl, vegaLiteUrl, vegaEmbedUrl, fallbackVegaUrl, fallbackVegaLiteUrl, fallbackVegaEmbedUrl) {
         console.log('Vega-Lite injection function called with containerId:', containerId);
         
         function findContainer() {
@@ -636,35 +652,82 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
           function loadScript(src, timeout) {
           return new Promise(function(resolve, reject) {
             console.log('Loading script:', src);
+            
+            // Check if script is already loaded
+            const existingScript = document.querySelector('script[src="' + src + '"]');
+            if (existingScript) {
+              console.log('Script already loaded:', src);
+              // Wait a bit to ensure it's initialized
+              setTimeout(function() {
+                resolve();
+              }, 100);
+              return;
+            }
+            
             const script = document.createElement('script');
             script.src = src;
             script.crossOrigin = 'anonymous';
+            script.async = false; // Load synchronously to maintain order
             
             const timeoutId = setTimeout(function() {
-              reject(new Error('Timeout loading ' + src));
+              script.onload = null;
+              script.onerror = null;
+              if (script.parentNode) {
+                script.parentNode.removeChild(script);
+              }
+              reject(new Error('Timeout loading ' + src + ' after ' + (timeout || 30000) + 'ms'));
             }, timeout || 30000);
             
             script.onload = function() {
               clearTimeout(timeoutId);
               console.log('Script loaded successfully:', src);
-              resolve();
+              // Small delay to ensure library is initialized
+              setTimeout(function() {
+                resolve();
+              }, 100);
             };
             
             script.onerror = function(event) {
               clearTimeout(timeoutId);
               console.error('Script load error:', src, event);
-              reject(new Error('Failed to load ' + src));
+              if (script.parentNode) {
+                script.parentNode.removeChild(script);
+              }
+              const errorMsg = 'Failed to load ' + src + '. This could be due to:\n' +
+                '1. Network connectivity issues\n' +
+                '2. Content Security Policy (CSP) restrictions\n' +
+                '3. CORS restrictions\n' +
+                '4. CDN server is down\n\n' +
+                'Please check your internet connection and browser console (F12) for details.';
+              reject(new Error(errorMsg));
             };
             
-            document.head.appendChild(script);
+            try {
+              document.head.appendChild(script);
+            } catch (e) {
+              clearTimeout(timeoutId);
+              console.error('Error appending script:', e);
+              reject(new Error('Failed to append script to DOM: ' + e.message));
+            }
           });
+        }
+        
+        function loadScriptWithFallback(primaryUrl, fallbackUrl, timeout, libraryName) {
+          return loadScript(primaryUrl, timeout)
+            .catch(function(error) {
+              console.warn('Failed to load ' + libraryName + ' from primary CDN (' + primaryUrl + '), trying fallback...');
+              console.warn('Error:', error.message);
+              // Try fallback CDN
+              return loadScript(fallbackUrl, timeout);
+            });
         }
         
         function loadLibraries() {
           console.log('Loading Vega-Lite libraries for container:', containerId);
           console.log('Using URLs:', { vegaUrl, vegaLiteUrl, vegaEmbedUrl });
+          console.log('Fallback URLs:', { fallbackVegaUrl, fallbackVegaLiteUrl, fallbackVegaEmbedUrl });
           
-          loadScript(vegaUrl, 30000)
+          loadScriptWithFallback(vegaUrl, fallbackVegaUrl, 30000, 'Vega')
             .then(function() {
               console.log('Vega loaded successfully');
               // Check if vega is available (might be vega or window.vega)
@@ -685,7 +748,7 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
               return Promise.resolve();
             })
             .then(function() {
-              return loadScript(vegaLiteUrl, 30000);
+              return loadScriptWithFallback(vegaLiteUrl, fallbackVegaLiteUrl, 30000, 'Vega-Lite');
             })
             .then(function() {
               console.log('Vega-Lite loaded successfully');
@@ -707,7 +770,7 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
               return Promise.resolve();
             })
             .then(function() {
-              return loadScript(vegaEmbedUrl, 30000);
+              return loadScriptWithFallback(vegaEmbedUrl, fallbackVegaEmbedUrl, 30000, 'Vega-Embed');
             })
             .then(function() {
               console.log('Vega-Embed loaded successfully');
@@ -738,13 +801,51 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
                 stack: error.stack,
                 vegaAvailable: typeof window.vega !== 'undefined',
                 vlAvailable: typeof window.vl !== 'undefined',
-                vegaEmbedAvailable: typeof window.vegaEmbed !== 'undefined'
+                vegaEmbedAvailable: typeof window.vegaEmbed !== 'undefined',
+                urls: { vegaUrl, vegaLiteUrl, vegaEmbedUrl }
               });
-              container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">' +
-                '<strong>Error loading chart library</strong><br>' +
-                error.message + '<br><br>' +
-                '<small>Please check your internet connection and browser console for details.</small>' +
+              
+              // Provide more helpful error message
+              let errorDetails = error.message;
+              if (error.message.includes('Timeout')) {
+                errorDetails = 'The chart library took too long to load. This might be due to slow internet connection or the CDN being unavailable.';
+              } else if (error.message.includes('Failed to load')) {
+                errorDetails = 'Unable to load the chart library from the CDN. Possible causes:\n' +
+                  '1. VPN blocking or interfering with CDN requests\n' +
+                  '2. Network connectivity issues\n' +
+                  '3. Content Security Policy (CSP) restrictions on this page\n' +
+                  '4. CDN server is down or unreachable\n\n' +
+                  'You can try:\n' +
+                  '- Disconnect VPN temporarily to test\n' +
+                  '- Check your internet connection\n' +
+                  '- Try refreshing the page\n' +
+                  '- Check browser console (F12) for detailed errors\n' +
+                  '- Update Vega library URLs in extension settings to use alternative CDN (unpkg.com)';
+              }
+              
+              container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+                '<strong style="font-size: 16px;">Error Loading Chart Library</strong><br><br>' +
+                '<div style="white-space: pre-line; line-height: 1.6;">' + errorDetails + '</div><br>' +
+                '<small style="color: #666;">Primary CDN URLs:<br>' +
+                'Vega: ' + vegaUrl + '<br>' +
+                'Vega-Lite: ' + vegaLiteUrl + '<br>' +
+                'Vega-Embed: ' + vegaEmbedUrl + '<br><br>' +
+                'Fallback CDN URLs (if primary fails):<br>' +
+                'Vega: ' + fallbackVegaUrl + '<br>' +
+                'Vega-Lite: ' + fallbackVegaLiteUrl + '<br>' +
+                'Vega-Embed: ' + fallbackVegaEmbedUrl + '</small>' +
                 '</div>';
+              
+              // Try to send error back to content script
+              try {
+                window.postMessage({
+                  type: 'vegaError',
+                  containerId: containerId,
+                  error: error.message
+                }, '*');
+              } catch (e) {
+                console.error('Could not send error message:', e);
+              }
             });
         }
         
@@ -792,17 +893,46 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
               // Clear loading message
               container.innerHTML = '';
               
+              // Set a timeout for chart rendering
+              const renderTimeout = setTimeout(function() {
+                const svg = container.querySelector('svg');
+                if (!svg) {
+                  console.error('Chart rendering timeout - no SVG found after 15 seconds');
+                  container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+                    '<strong>Error:</strong> Chart rendering timed out.<br><br>' +
+                    'The libraries loaded but the chart failed to render. This might be due to:<br>' +
+                    '1. Invalid chart specification<br>' +
+                    '2. Data format issues<br>' +
+                    '3. Library compatibility issues<br><br>' +
+                    'Please check browser console (F12) for detailed errors.' +
+                    '</div>';
+                  try {
+                    window.postMessage({
+                      type: 'vegaError',
+                      containerId: containerId,
+                      error: 'Chart rendering timeout'
+                    }, '*');
+                  } catch (e) {}
+                }
+              }, 15000);
+              
               vegaEmbedFunc(container, spec, {
                 actions: false,
                 renderer: 'svg',
                 theme: 'default'
               }).then(function(result) {
+                clearTimeout(renderTimeout);
                 console.log('Chart rendered successfully', result);
                 // Verify SVG was created
                 const svg = container.querySelector('svg');
                 if (!svg) {
                   console.warn('vegaEmbed returned success but no SVG found in container');
-                  container.innerHTML = '<div style="color: orange; padding: 10px;">Chart rendered but SVG not found. Please check browser console.</div>';
+                  container.innerHTML = '<div style="color: orange; padding: 15px; border: 1px solid orange; border-radius: 4px; background: #fff8e1;">' +
+                    '<strong>Warning:</strong> Chart rendered but SVG not found.<br>' +
+                    'Please check browser console (F12) for details.' +
+                    '</div>';
+                } else {
+                  console.log('SVG found in container, chart is visible');
                 }
                 // Notify content script that chart is rendered
                 try {
@@ -814,15 +944,18 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
                   console.warn('Could not send render success message:', e);
                 }
               }).catch(function(err) {
+                clearTimeout(renderTimeout);
                 console.error('Vega-Lite render error:', err);
                 console.error('Error details:', {
                   message: err.message,
                   stack: err.stack,
-                  spec: spec
+                  spec: JSON.stringify(spec).substring(0, 500)
                 });
                 const errorMsg = (err.message || String(err)) + '. Check browser console (F12) for details.';
-                container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;"><strong>Error rendering chart:</strong><br>' + 
-                  errorMsg + '</div>';
+                container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+                  '<strong>Error rendering chart:</strong><br><br>' +
+                  '<div style="white-space: pre-line;">' + errorMsg + '</div>' +
+                  '</div>';
                 // Try to send error back
                 try {
                   window.postMessage({
@@ -830,7 +963,9 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
                     containerId: containerId,
                     error: err.message || String(err)
                   }, '*');
-                } catch (e) {}
+                } catch (e) {
+                  console.error('Could not send error message:', e);
+                }
               });
             } catch (err) {
               console.error('Vega-Lite error:', err);

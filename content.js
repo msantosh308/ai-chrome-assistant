@@ -9,14 +9,17 @@ if (document.readyState === 'loading') {
   initChatUI();
 }
 
-// Listen for postMessage from page context (for Vega-Lite errors)
+// Listen for postMessage from page context (for Vega-Lite errors and success)
 window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'vegaError') {
+    console.error('Received Vega error via postMessage:', event.data);
     const container = document.getElementById(event.data.containerId);
     if (container) {
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;"><strong>Error:</strong> ' + 
+      container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;"><strong>Error:</strong> ' + 
         (event.data.error || 'Unknown error') + '<br><small>Please check browser console (F12) for details.</small></div>';
     }
+  } else if (event.data && event.data.type === 'vegaChartRendered') {
+    console.log('Chart rendered successfully, received via postMessage:', event.data.containerId);
   }
 });
 
@@ -1233,37 +1236,98 @@ function renderVegaLite(container, spec) {
     containerId: containerId,
     spec: spec
   }, (response) => {
+    console.log('Vega injection response:', response);
+    
     if (chrome.runtime.lastError) {
       console.error('Error sending inject message:', chrome.runtime.lastError);
-      container.innerHTML = '<div style="color: red; padding: 10px;"><strong>Error:</strong> Unable to load chart library. ' + 
-        chrome.runtime.lastError.message + '</div>';
-    } else if (response && response.error) {
-      container.innerHTML = '<div style="color: red; padding: 10px;"><strong>Error:</strong> ' + response.error + '</div>';
-    } else if (!response || !response.success) {
-      // Wait a bit to see if chart renders (injection is async)
-      setTimeout(() => {
-        // Check if chart was rendered by looking for SVG in container
-        const svg = container.querySelector('svg');
-        if (!svg && container.innerHTML.includes('Loading chart')) {
-          container.innerHTML = '<div style="color: orange; padding: 10px;">Chart is loading... If this persists, please check the browser console for errors.</div>';
-        }
-      }, 5000);
-      
-      // Also check periodically if chart rendered
-      let checkCount = 0;
-      const checkInterval = setInterval(() => {
-        checkCount++;
-        const svg = container.querySelector('svg');
-        if (svg) {
-          clearInterval(checkInterval);
-        } else if (checkCount >= 10) {
-          clearInterval(checkInterval);
-          if (container.innerHTML.includes('Loading chart') || container.innerHTML.includes('Chart is loading')) {
-            container.innerHTML = '<div style="color: red; padding: 10px;"><strong>Error:</strong> Chart failed to load. Please check browser console (F12) for details or try refreshing the page.</div>';
-          }
-        }
-      }, 1000);
+      container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+        '<strong>Error:</strong> Unable to communicate with extension background script.<br>' +
+        '<small>' + chrome.runtime.lastError.message + '</small><br><br>' +
+        '<small>Try refreshing the page or reloading the extension.</small>' +
+        '</div>';
+      return;
     }
+    
+    if (response && response.error) {
+      console.error('Vega injection error:', response.error);
+      container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+        '<strong>Error Loading Chart:</strong><br>' +
+        '<div style="white-space: pre-line; margin-top: 8px;">' + response.error + '</div>' +
+        '</div>';
+      return;
+    }
+    
+    // If response indicates success, wait for chart to render
+    // Otherwise, set up monitoring for async rendering
+    if (response && response.success) {
+      console.log('Vega injection started successfully, waiting for chart to render...');
+    }
+    
+    // Set up monitoring to check if chart renders
+    let checkCount = 0;
+    const maxChecks = 35; // Check for 35 seconds (libraries might take time with VPN)
+    const checkInterval = setInterval(() => {
+      checkCount++;
+      
+      // Check if SVG was rendered
+      const svg = container.querySelector('svg');
+      if (svg && svg.children.length > 0) {
+        console.log('Chart rendered successfully! SVG found.');
+        clearInterval(checkInterval);
+        return;
+      }
+      
+      // Check for error messages (red divs or error text)
+      const errorDiv = container.querySelector('div[style*="color: red"], div[style*="Error"], div:contains("Error")');
+      const hasErrorText = container.textContent && (
+        container.textContent.includes('Error') || 
+        container.textContent.includes('Failed') ||
+        container.textContent.includes('timeout')
+      );
+      
+      if (errorDiv || hasErrorText) {
+        console.log('Error detected in container, stopping checks');
+        clearInterval(checkInterval);
+        return;
+      }
+      
+      // After 15 seconds, show a more detailed message
+      if (checkCount === 15) {
+        if (container.innerHTML.includes('Loading chart') || container.innerHTML.includes('Chart is loading')) {
+          container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">' +
+            'Loading chart... (this may take longer with VPN)<br>' +
+            '<small style="color: #999; margin-top: 10px; display: block;">If this persists, check browser console (F12) for errors</small>' +
+            '</div>';
+        }
+      }
+      
+      // Final timeout
+      if (checkCount >= maxChecks) {
+        clearInterval(checkInterval);
+        console.error('Chart failed to render after', maxChecks, 'seconds');
+        
+        // Check one more time if SVG exists
+        const finalSvg = container.querySelector('svg');
+        if (!finalSvg && (container.innerHTML.includes('Loading chart') || container.innerHTML.includes('Chart is loading') || container.innerHTML.trim() === '')) {
+          container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
+            '<strong>Error:</strong> Chart failed to load after 35 seconds.<br><br>' +
+            '<div style="white-space: pre-line; font-size: 13px; line-height: 1.6;">' +
+            '<strong>Possible causes:</strong><br>' +
+            '1. VPN blocking CDN requests (most likely)<br>' +
+            '2. Network connectivity issues<br>' +
+            '3. Content Security Policy restrictions<br>' +
+            '4. Library loading timeout<br><br>' +
+            '<strong>Solutions:</strong><br>' +
+            '• Check browser console (F12) for detailed errors<br>' +
+            '• Try disconnecting VPN temporarily<br>' +
+            '• Try refreshing the page<br>' +
+            '• Update Vega library URLs in extension settings to use unpkg.com CDN<br>' +
+            '• Check if CDN URLs are accessible in your network' +
+            '</div>' +
+            '</div>';
+        }
+      }
+    }, 1000);
   });
 }
 
