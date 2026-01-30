@@ -56,14 +56,39 @@ jobs:
           # Create ZIP file - CRITICAL: files must be at root, not in subdirectory
           ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
           
-          # Method: Change to temp directory and zip its contents (not the directory itself)
-          # This ensures files are at ZIP root
+          # Remove existing ZIP if present
+          rm -f "$ZIP_NAME"
+          
+          # Method: Create ZIP from within temp directory
+          # This ensures files are added at root level (not in a subdirectory)
           cd "$TEMP_DIR"
-          # Zip all files in current directory to parent directory
-          # The -r flag includes subdirectories (like icons/)
-          # The . means current directory contents
-          zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*" "*.zip" "*.sh"
+          
+          # Add all files and directories to ZIP
+          # The key is being INSIDE the directory when zipping, so paths are relative to current dir
+          zip -r "../$ZIP_NAME" . \
+            -x "*.DS_Store" \
+            -x "*.git*" \
+            -x "*.zip" \
+            -x "*.sh" \
+            -x "zip-verify-*"
+          
           cd ..
+          
+          # Show ZIP contents for debugging
+          echo ""
+          echo "=== ZIP File Contents (first 30 entries) ==="
+          unzip -l "$ZIP_NAME" | head -30
+          echo ""
+          
+          # CRITICAL: Verify manifest.json path in ZIP listing
+          echo "=== Checking for manifest.json in ZIP ==="
+          if unzip -l "$ZIP_NAME" | grep -E "^[[:space:]]*[0-9]+.*manifest.json[[:space:]]*$" | grep -v "/"; then
+            echo "✅ manifest.json found at root level in ZIP listing"
+          else
+            echo "⚠️  Checking all manifest.json entries:"
+            unzip -l "$ZIP_NAME" | grep "manifest.json" || echo "❌ manifest.json NOT FOUND in ZIP!"
+          fi
+          echo ""
           
           echo ""
           echo "=== Verifying ZIP Structure ==="
@@ -117,6 +142,22 @@ jobs:
           fi
           
           echo "✅ All files verified at root level"
+          
+          # Final check: Try to read manifest.json directly from ZIP
+          echo ""
+          echo "=== Final Verification: Reading manifest.json from ZIP ==="
+          if unzip -p "$ZIP_NAME" manifest.json > /dev/null 2>&1; then
+            echo "✅ SUCCESS: Can read manifest.json directly from ZIP root"
+            echo "First few lines of manifest.json:"
+            unzip -p "$ZIP_NAME" manifest.json | head -5
+          else
+            echo "❌ ERROR: Cannot read manifest.json from ZIP root!"
+            echo "This means manifest.json is NOT at root level."
+            rm -rf "$TEST_EXTRACT"
+            rm -rf "$TEMP_DIR"
+            exit 1
+          fi
+          
           rm -rf "$TEST_EXTRACT"
           
           # Clean up temp directory
@@ -125,6 +166,9 @@ jobs:
           echo ""
           echo "✅ Package created successfully: $ZIP_NAME"
           echo "📦 Ready for Chrome Web Store upload!"
+          echo ""
+          echo "IMPORTANT: When downloading from GitHub Actions artifacts,"
+          echo "make sure to upload the ZIP file directly - do NOT extract and re-zip it."
           echo "package_name=$ZIP_NAME" >> $GITHUB_OUTPUT
       
       - name: Verify package contents
