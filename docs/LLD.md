@@ -871,7 +871,7 @@ CHAT_CONTAINER_DEFAULT_WIDTH = 400
 CHAT_CONTAINER_DEFAULT_HEIGHT = 600
 ```
 
-### 12.2 Color Theme (FactSet)
+### 12.2 Color Theme
 
 ```css
 --primary-color: #00AEEF;
