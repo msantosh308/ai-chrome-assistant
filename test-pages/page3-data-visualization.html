@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Visualization Examples</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .section {
+      background: white;
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h2 {
+      color: #667eea;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    th {
+      background: #667eea;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .stat-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    
+    .stat-box .label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    
+    .stat-box .value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .form-group {
+      margin: 15px 0;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <h1>📈 Data Visualization Examples</h1>
+  
+  <div class="section">
+    <h2>Website Analytics</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="label">Total Visitors</div>
+        <div class="value">45,231</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Page Views</div>
+        <div class="value">128,456</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Bounce Rate</div>
+        <div class="value">32.5%</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Avg. Session</div>
+        <div class="value">4:32</div>
+      </div>
+    </div>
+    
+    <h3>Traffic by Source</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Visitors</th>
+          <th>Percentage</th>
+          <th>Conversion Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Organic Search</td>
+          <td>18,450</td>
+          <td>40.8%</td>
+          <td>3.2%</td>
+        </tr>
+        <tr>
+          <td>Direct</td>
+          <td>12,320</td>
+          <td>27.2%</td>
+          <td>4.1%</td>
+        </tr>
+        <tr>
+          <td>Social Media</td>
+          <td>8,950</td>
+          <td>19.8%</td>
+          <td>2.8%</td>
+        </tr>
+        <tr>
+          <td>Referral</td>
+          <td>3,210</td>
+          <td>7.1%</td>
+          <td>3.5%</td>
+        </tr>
+        <tr>
+          <td>Paid Ads</td>
+          <td>2,301</td>
+          <td>5.1%</td>
+          <td>5.2%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="section">
+    <h2>Monthly Performance Metrics</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Revenue</th>
+          <th>Users</th>
+          <th>Orders</th>
+          <th>Avg. Order Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>January</td>
+          <td>$45,230</td>
+          <td>1,234</td>
+          <td>456</td>
+          <td>$99.19</td>
+        </tr>
+        <tr>
+          <td>February</td>
+          <td>$52,180</td>
+          <td>1,456</td>
+          <td>523</td>
+          <td>$99.77</td>
+        </tr>
+        <tr>
+          <td>March</td>
+          <td>$48,920</td>
+          <td>1,389</td>
+          <td>489</td>
+          <td>$100.04</td>
+        </tr>
+        <tr>
+          <td>April</td>
+          <td>$61,450</td>
+          <td>1,678</td>
+          <td>612</td>
+          <td>$100.41</td>
+        </tr>
+        <tr>
+          <td>May</td>
+          <td>$58,320</td>
+          <td>1,567</td>
+          <td>578</td>
+          <td>$100.90</td>
+        </tr>
+        <tr>
+          <td>June</td>
+          <td>$65,890</td>
+          <td>1,789</td>
+          <td>654</td>
+          <td>$100.60</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="section">
+    <h2>User Feedback Form</h2>
+    <p>This page contains various data elements that can be analyzed. Try asking the AI assistant questions like:</p>
+    <ul>
+      <li>"Create a bar chart showing revenue by month"</li>
+      <li>"Explain the traffic sources data"</li>
+      <li>"What insights can you provide about the monthly performance?"</li>
+    </ul>
+    
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select id="category">
+        <option value="analytics">Analytics</option>
+        <option value="sales">Sales</option>
+        <option value="marketing">Marketing</option>
+        <option value="support">Support</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="rating">Rating</label>
+      <input type="number" id="rating" min="1" max="5" value="5" placeholder="Rate 1-5">
+    </div>
+    
+    <button>Submit Feedback</button>
+  </div>
+  
+  <div class="section">
+    <h2>Product Categories</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Products</th>
+          <th>Total Sales</th>
+          <th>Growth</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Electronics</td>
+          <td>125</td>
+          <td>$234,560</td>
+          <td>+15.3%</td>
+        </tr>
+        <tr>
+          <td>Clothing</td>
+          <td>89</td>
+          <td>$156,780</td>
+          <td>+8.7%</td>
+        </tr>
+        <tr>
+          <td>Home & Garden</td>
+          <td>67</td>
+          <td>$98,450</td>
+          <td>+12.1%</td>
+        </tr>
+        <tr>
+          <td>Books</td>
+          <td>234</td>
+          <td>$45,230</td>
+          <td>+5.2%</td>
+        </tr>
+        <tr>
+          <td>Sports</td>
+          <td>56</td>
+          <td>$78,920</td>
+          <td>+22.4%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
