@@ -33,6 +33,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       container.style.display = 'flex';
       // Reload chat history when opening
       loadChatHistory();
+      // Load suggestions when opening chat (with small delay)
+      setTimeout(() => {
+        loadSuggestions();
+      }, 100);
       // Focus the input
       setTimeout(() => {
         const input = document.getElementById('ai-chat-input');
@@ -96,6 +100,10 @@ function toggleChatUI() {
     container.style.display = 'flex';
     // Reload chat history when opening
     loadChatHistory();
+    // Load suggestions when opening chat (with small delay)
+    setTimeout(() => {
+      loadSuggestions();
+    }, 100);
   } else {
     container.style.display = 'none';
   }
@@ -113,6 +121,7 @@ function loadChatUI() {
       </div>
     </div>
     <div class="ai-chat-messages" id="ai-chat-messages"></div>
+    <div class="ai-chat-suggestions" id="ai-chat-suggestions"></div>
     <div class="ai-chat-input-container">
       <input type="text" id="ai-chat-input" placeholder="Ask a question about this page...">
       <button id="ai-chat-send">Send</button>
@@ -153,6 +162,16 @@ function loadChatUI() {
   
   // Load chat history for this page
   loadChatHistory();
+  
+  // Load suggestions when chat UI is first loaded (with small delay to ensure DOM is ready)
+  setTimeout(() => {
+    const suggestionsContainer = document.getElementById('ai-chat-suggestions');
+    if (suggestionsContainer) {
+      loadSuggestions();
+    } else {
+      console.error('Suggestions container not found after DOM load');
+    }
+  }, 100);
 }
 
 // Chat history functions
@@ -185,6 +204,124 @@ function loadChatHistory() {
       }
     }
   });
+}
+
+async function loadSuggestions() {
+  const suggestionsContainer = document.getElementById('ai-chat-suggestions');
+  if (!suggestionsContainer) {
+    console.log('Suggestions container not found');
+    return;
+  }
+  
+  const key = getChatHistoryKey();
+  chrome.storage.local.get([key], async (result) => {
+    const history = result[key] || [];
+    
+    console.log('Loading suggestions...', history.length > 0 ? 'with conversation context' : 'for new conversation');
+    
+    // Show loading state
+    suggestionsContainer.innerHTML = '<div class="ai-suggestions-loading">Loading suggestions...</div>';
+    suggestionsContainer.style.display = 'flex';
+    
+    try {
+      // Extract page context
+      const context = extractSemanticJSON();
+      console.log('Page context extracted, requesting suggestions');
+      
+      // Request suggestions from background script with conversation history
+      const response = await chrome.runtime.sendMessage({
+        action: 'generateSuggestions',
+        data: {
+          context: context,
+          conversationHistory: history // Pass conversation history for context-aware suggestions
+        }
+      });
+      
+      console.log('Suggestions response:', response);
+      
+      if (response && response.success && response.suggestions && response.suggestions.length > 0) {
+        console.log('Displaying suggestions:', response.suggestions);
+        displaySuggestions(response.suggestions);
+      } else {
+        console.warn('No suggestions received or error:', response);
+        // Show error or fallback suggestions
+        const errorMsg = response?.error || 'Unable to generate suggestions';
+        console.error('Suggestions error:', errorMsg);
+        // Show context-aware fallback suggestions
+        if (history.length > 0) {
+          displaySuggestions([
+            'Tell me more about this',
+            'Can you provide more details?',
+            'What else can you help me with?'
+          ]);
+        } else {
+          displaySuggestions([
+            'Explain the main content on this page',
+            'What data or information is displayed here?',
+            'Can you summarize this page?'
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading suggestions:', error);
+      // Show context-aware fallback suggestions
+      const history = result[key] || [];
+      if (history.length > 0) {
+        displaySuggestions([
+          'Tell me more about this',
+          'Can you provide more details?',
+          'What else can you help me with?'
+        ]);
+      } else {
+        displaySuggestions([
+          'Explain the main content on this page',
+          'What data or information is displayed here?',
+          'Can you summarize this page?'
+        ]);
+      }
+    }
+  });
+}
+
+function displaySuggestions(suggestions) {
+  const suggestionsContainer = document.getElementById('ai-chat-suggestions');
+  if (!suggestionsContainer) {
+    console.error('Suggestions container not found when trying to display');
+    return;
+  }
+  
+  // Clear loading state
+  suggestionsContainer.innerHTML = '';
+  
+  // Create suggestion chips
+  suggestions.forEach((suggestion, index) => {
+    const chip = document.createElement('button');
+    chip.className = 'ai-suggestion-chip';
+    chip.textContent = suggestion;
+    chip.setAttribute('data-suggestion', suggestion);
+    chip.addEventListener('click', () => {
+      handleSuggestionClick(suggestion);
+    });
+    suggestionsContainer.appendChild(chip);
+  });
+  
+  suggestionsContainer.style.display = 'flex';
+  console.log('Suggestions displayed:', suggestions.length);
+}
+
+function handleSuggestionClick(suggestion) {
+  // Hide suggestions after clicking
+  const suggestionsContainer = document.getElementById('ai-chat-suggestions');
+  if (suggestionsContainer) {
+    suggestionsContainer.style.display = 'none';
+  }
+  
+  // Set the input value and send the message
+  const input = document.getElementById('ai-chat-input');
+  if (input) {
+    input.value = suggestion;
+    handleSendMessage();
+  }
 }
 
 function restoreMessage(msg) {
@@ -334,6 +471,12 @@ async function handleSendMessage() {
   
   if (!question) return;
   
+  // Hide suggestions temporarily when user sends a message (will refresh after response)
+  const suggestionsContainer = document.getElementById('ai-chat-suggestions');
+  if (suggestionsContainer) {
+    suggestionsContainer.style.display = 'none';
+  }
+  
   // Add user message to chat
   addMessage('user', question);
   input.value = '';
@@ -359,12 +502,21 @@ async function handleSendMessage() {
     
     if (response.success) {
       renderResponse(response.data);
+      // Suggestions will be refreshed in renderResponse
     } else {
       addMessage('assistant', `Error: ${response.error}`, false);
+      // Refresh suggestions even on error
+      setTimeout(() => {
+        loadSuggestions();
+      }, 500);
     }
   } catch (error) {
     removeMessage(loadingId);
     addMessage('assistant', `Error: ${error.message}`, false);
+    // Refresh suggestions even on error
+    setTimeout(() => {
+      loadSuggestions();
+    }, 500);
   }
 }
 
@@ -811,6 +963,11 @@ function renderResponse(data) {
       // Save to history (include summary)
       saveMessageToHistory('assistant', '', data);
       
+      // Refresh suggestions based on the new response
+      setTimeout(() => {
+        loadSuggestions();
+      }, 500);
+      
       // Wait a bit to ensure DOM is updated and container is accessible
       setTimeout(() => {
         const container = document.getElementById(containerId);
@@ -847,6 +1004,11 @@ function renderResponse(data) {
   
   messagesContainer.appendChild(messageDiv);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  
+  // Refresh suggestions based on the new response
+  setTimeout(() => {
+    loadSuggestions();
+  }, 500);
 }
 
 function renderMarkdown(content) {

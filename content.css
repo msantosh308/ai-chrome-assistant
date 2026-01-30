@@ -259,6 +259,54 @@
   border-color: #4caf50 !important;
 }
 
+.ai-chat-suggestions {
+  padding: 12px 16px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f9f9f9;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.ai-chat-suggestions:empty {
+  display: none !important;
+}
+
+.ai-suggestions-loading {
+  padding: 8px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+}
+
+.ai-suggestion-chip {
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.ai-suggestion-chip:hover {
+  background: #00AEEF;
+  color: white;
+  border-color: #00AEEF;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+}
+
+.ai-suggestion-chip:active {
+  transform: translateY(0);
+}
+
 .ai-chat-input-container {
   padding: 16px;
   border-top: 1px solid #e0e0e0;

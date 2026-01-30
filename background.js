@@ -28,6 +28,26 @@ const VENDOR_ENDPOINTS = {
   }
 };
 
+// Normalize model name based on vendor
+// For LiteLLM/OpenAI-compatible endpoints, Claude models need 'anthropic/' prefix
+function normalizeModelName(model, vendor, endpoint) {
+  if (!model) return model;
+  
+  // If using LiteLLM or OpenAI-compatible endpoint (not direct Anthropic API)
+  // and model is a Claude model, add anthropic/ prefix
+  if ((vendor === 'litellm' || vendor === 'openai' || vendor === 'custom') && 
+      vendor !== 'claude' && 
+      model.startsWith('claude-') && 
+      !model.startsWith('anthropic/')) {
+    // Check if endpoint is not the direct Anthropic API
+    if (!endpoint.includes('api.anthropic.com')) {
+      return `anthropic/${model}`;
+    }
+  }
+  
+  return model;
+}
+
 // Handle extension icon click - open inline chat on the page
 chrome.action.onClicked.addListener(async (tab) => {
   // Check if tab is valid
@@ -106,6 +126,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'callLLM') {
     handleLLMCall(request.data)
       .then(response => sendResponse({ success: true, data: response }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep channel open for async response
+  }
+  
+  if (request.action === 'generateSuggestions') {
+    generateSuggestions(request.data)
+      .then(suggestions => sendResponse({ success: true, suggestions: suggestions }))
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Keep channel open for async response
   }
@@ -207,6 +234,9 @@ async function handleLLMCall(data) {
   const endpointFunc = VENDOR_ENDPOINTS[vendor] || VENDOR_ENDPOINTS.custom;
   const endpoint = endpointFunc(baseEndpoint, llmSettings.model);
   
+  // Normalize model name (add anthropic/ prefix for Claude models in LiteLLM)
+  const normalizedModel = normalizeModelName(llmSettings.model, vendor, baseEndpoint);
+  
   // Prepare request based on vendor
   let requestBody;
   let headers = {
@@ -246,7 +276,7 @@ async function handleLLMCall(data) {
   } else {
     // OpenAI-compatible format (LiteLLM, OpenAI, Custom)
     requestBody = {
-      model: llmSettings.model || 'gpt-4',
+      model: normalizedModel || llmSettings.model || 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -339,6 +369,161 @@ async function handleLLMCall(data) {
       type: 'markdown',
       content: content
     };
+  }
+}
+
+async function generateSuggestions(data) {
+  // Get settings
+  const settings = await chrome.storage.sync.get(['llmSettings', 'promptSettings']);
+  const llmSettings = settings.llmSettings || {};
+  
+  if (!llmSettings.apiKey) {
+    throw new Error('API key not configured. Please configure it in settings.');
+  }
+  
+  const vendor = llmSettings.vendor || 'litellm';
+  
+  // Build a specialized prompt for generating suggestions
+  // If conversation history exists, include it to make suggestions context-aware
+  let conversationContext = '';
+  if (data.conversationHistory && data.conversationHistory.length > 0) {
+    const recentMessages = data.conversationHistory.slice(-4); // Last 4 messages (2 exchanges)
+    conversationContext = '\n\nRecent conversation:\n' + recentMessages.map(msg => {
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      const content = msg.type === 'vega-lite' 
+        ? (msg.summary || 'Created a visualization/chart')
+        : (msg.content || '').substring(0, 200); // Limit content length
+      return `${role}: ${content}`;
+    }).join('\n');
+  }
+  
+  const systemPrompt = 'You are a helpful assistant that generates contextual question suggestions based on web page content and conversation history. Analyze the page context and recent conversation to generate exactly 3 relevant, concise follow-up questions that users might want to ask. These should build on the conversation or explore related aspects. Return ONLY a JSON array of exactly 3 strings, no other text. Example format: ["Question 1?", "Question 2?", "Question 3?"]';
+  
+  const userPrompt = `Based on the following page content${conversationContext ? ' and recent conversation' : ''}, generate exactly 3 relevant, concise follow-up questions that would help users continue exploring or understand more about this page:\n\nPage context:\n${JSON.stringify(data.context, null, 2)}${conversationContext}\n\nReturn only a JSON array of exactly 3 question strings.`;
+  
+  // Get vendor-specific endpoint
+  const baseEndpoint = llmSettings.apiEndpoint.trim();
+  const endpointFunc = VENDOR_ENDPOINTS[vendor] || VENDOR_ENDPOINTS.custom;
+  const endpoint = endpointFunc(baseEndpoint, llmSettings.model);
+  
+  // Normalize model name (add anthropic/ prefix for Claude models in LiteLLM)
+  const normalizedModel = normalizeModelName(llmSettings.model, vendor, baseEndpoint);
+  
+  // Prepare request based on vendor
+  let requestBody;
+  let headers = {
+    'Content-Type': 'application/json'
+  };
+  
+  if (vendor === 'gemini') {
+    requestBody = {
+      contents: [{
+        parts: [{
+          text: `${systemPrompt}\n\n${userPrompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 500
+      }
+    };
+    const separator = endpoint.includes('?') ? '&' : '?';
+    endpoint = `${endpoint}${separator}key=${encodeURIComponent(llmSettings.apiKey)}`;
+  } else if (vendor === 'claude') {
+    requestBody = {
+      model: llmSettings.model || 'claude-3-sonnet-20240229',
+      max_tokens: 500,
+      temperature: 0.8,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: userPrompt }
+      ]
+    };
+    headers['x-api-key'] = llmSettings.apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+  } else {
+    requestBody = {
+      model: normalizedModel || llmSettings.model || 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 500
+    };
+    headers['Authorization'] = `Bearer ${llmSettings.apiKey}`;
+  }
+  
+  // Call LLM API
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody)
+  });
+  
+  if (!response.ok) {
+    let errorMessage = `API error: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error?.message || errorData.message || errorMessage;
+    } catch (e) {
+      const errorText = await response.text().catch(() => '');
+      if (errorText) {
+        errorMessage += ` - ${errorText.substring(0, 200)}`;
+      }
+    }
+    throw new Error(errorMessage);
+  }
+  
+  const result = await response.json();
+  let content;
+  
+  // Extract content based on vendor response format
+  if (vendor === 'gemini') {
+    content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+  } else if (vendor === 'claude') {
+    content = result.content?.[0]?.text;
+  } else {
+    content = result.choices?.[0]?.message?.content;
+  }
+  
+  if (!content) {
+    throw new Error('No response from LLM for suggestions');
+  }
+  
+  // Parse JSON array response
+  try {
+    // Try to extract JSON array from the response (might have markdown code blocks)
+    let jsonStr = content.trim();
+    
+    // Remove markdown code blocks if present
+    if (jsonStr.startsWith('```')) {
+      const lines = jsonStr.split('\n');
+      jsonStr = lines.slice(1, -1).join('\n').trim();
+    }
+    
+    const parsed = JSON.parse(jsonStr);
+    
+    // Ensure it's an array
+    if (!Array.isArray(parsed)) {
+      throw new Error('Response is not an array');
+    }
+    
+    // Take first 3 suggestions, pad if needed
+    const suggestions = parsed.slice(0, 3);
+    while (suggestions.length < 3) {
+      suggestions.push('Ask a question about this page');
+    }
+    
+    return suggestions;
+  } catch (e) {
+    console.error('Error parsing suggestions:', e, 'Content:', content);
+    // Return default suggestions if parsing fails
+    return [
+      'Explain the main content on this page',
+      'What data or information is displayed here?',
+      'Can you summarize this page?'
+    ];
   }
 }
 
