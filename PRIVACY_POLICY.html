@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - AI Assistant - Page Context Chat</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #fff;
+        }
+        h1 {
+            color: #1a73e8;
+            border-bottom: 3px solid #1a73e8;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #5f6368;
+            margin-top: 30px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #80868b;
+            margin-top: 20px;
+        }
+        .last-updated {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        ul, ol {
+            margin-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .highlight {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #1a73e8;
+            margin: 20px 0;
+        }
+        .contact-info {
+            background-color: #e8f0fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last Updated: January 30, 2026</p>
+
+    <div class="section">
+        <p>
+            This Privacy Policy describes how the <strong>AI Assistant - Page Context Chat</strong> Chrome extension 
+            ("we", "our", or "the Extension") collects, uses, and shares user data. This policy applies to all 
+            users of the Extension.
+        </p>
+    </div>
+
+    <h2>1. Information We Collect</h2>
+    
+    <div class="section">
+        <h3>1.1 Page Content Data</h3>
+        <p>
+            When you use the Extension on a webpage, we extract the following visible content from the page:
+        </p>
+        <ul>
+            <li><strong>Page Title:</strong> The title of the webpage</li>
+            <li><strong>Page URL:</strong> The URL of the webpage you are viewing</li>
+            <li><strong>Tables:</strong> Data from HTML tables and div-based table structures visible on the page</li>
+            <li><strong>Headings:</strong> Text content from heading elements (h1-h6)</li>
+            <li><strong>Text Content:</strong> Visible text content from the page</li>
+        </ul>
+        <p>
+            <strong>Important:</strong> We only extract content that is visible in the browser's Document Object Model (DOM). 
+            We do not extract:
+        </p>
+        <ul>
+            <li>Hidden or non-visible content</li>
+            <li>JavaScript code or scripts</li>
+            <li>CSS styles</li>
+            <li>Cookies or local storage data from websites</li>
+            <li>Password fields or sensitive form inputs</li>
+            <li>Content from iframes or embedded content</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>1.2 User Messages</h3>
+        <p>
+            We collect the messages you send through the Extension's chat interface. These messages may include:
+        </p>
+        <ul>
+            <li>Questions or queries about the webpage content</li>
+            <li>Requests for data analysis or visualizations</li>
+            <li>Follow-up questions in conversation threads</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>1.3 Configuration Data</h3>
+        <p>
+            We store the following configuration settings that you provide:
+        </p>
+        <ul>
+            <li><strong>LLM Provider Settings:</strong>
+                <ul>
+                    <li>Vendor selection (OpenAI, Anthropic, Google Gemini, LiteLLM, or Custom)</li>
+                    <li>API endpoint URL</li>
+                    <li>API key (stored securely using Chrome's encrypted storage)</li>
+                    <li>Model name</li>
+                    <li>Temperature and max tokens settings</li>
+                </ul>
+            </li>
+            <li><strong>Prompt Settings:</strong> Custom system prompts and user prompt templates (optional)</li>
+            <li><strong>Visualization Settings:</strong> Vega-Lite library CDN URLs (optional)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>1.4 Chat History</h3>
+        <p>
+            We store your chat conversations locally in your browser. Chat history is stored per webpage 
+            and includes:
+        </p>
+        <ul>
+            <li>Your messages</li>
+            <li>AI assistant responses</li>
+            <li>Timestamps</li>
+            <li>Visualization specifications (if charts were generated)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>1.5 Usage Preferences</h3>
+        <p>
+            We store minimal usage preferences:
+        </p>
+        <ul>
+            <li>Chat window dimensions (width and height) for your convenience</li>
+        </ul>
+    </div>
+
+    <h2>2. How We Use Your Data</h2>
+
+    <div class="section">
+        <h3>2.1 Core Functionality</h3>
+        <p>
+            We use the collected data solely to provide the Extension's core functionality:
+        </p>
+        <ul>
+            <li><strong>AI Analysis:</strong> Page content and your messages are sent to the LLM provider 
+                you have configured (OpenAI, Anthropic, Google Gemini, or LiteLLM) to generate responses 
+                and visualizations</li>
+            <li><strong>Chat History:</strong> Stored locally to restore previous conversations when you 
+                return to the same webpage</li>
+            <li><strong>Settings:</strong> Used to configure API calls and customize the Extension's behavior</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>2.2 Data Processing</h3>
+        <p>
+            All data processing occurs:
+        </p>
+        <ul>
+            <li><strong>Locally:</strong> Content extraction and UI rendering happen entirely in your browser</li>
+            <li><strong>Via Your Chosen LLM Provider:</strong> Page content and messages are sent to the 
+                LLM service you configure (OpenAI, Anthropic, Google, or your LiteLLM instance)</li>
+        </ul>
+        <p>
+            We do not operate any servers or backend infrastructure. We do not process, analyze, or store 
+            your data on our own servers.
+        </ul>
+    </div>
+
+    <h2>3. Data Sharing and Third Parties</h2>
+
+    <div class="section">
+        <h3>3.1 LLM Providers</h3>
+        <p>
+            When you use the Extension, the following data is transmitted to the LLM provider you have configured:
+        </p>
+        <ul>
+            <li>Page content (tables, headings, text)</li>
+            <li>Your chat messages</li>
+            <li>Conversation history (last few messages for context)</li>
+            <li>System prompts and configuration</li>
+        </ul>
+        <p>
+            <strong>LLM Providers:</strong> Depending on your configuration, data may be sent to:
+        </p>
+        <ul>
+            <li><strong>OpenAI:</strong> <a href="https://openai.com/privacy" target="_blank">https://openai.com/privacy</a></li>
+            <li><strong>Anthropic (Claude):</strong> <a href="https://www.anthropic.com/privacy" target="_blank">https://www.anthropic.com/privacy</a></li>
+            <li><strong>Google (Gemini):</strong> <a href="https://policies.google.com/privacy" target="_blank">https://policies.google.com/privacy</a></li>
+            <li><strong>LiteLLM:</strong> Your self-hosted instance (privacy policy depends on your LiteLLM provider)</li>
+            <li><strong>Custom Endpoints:</strong> Your configured endpoint (privacy policy depends on your provider)</li>
+        </ul>
+        <p>
+            <strong>Important:</strong> We recommend reviewing the privacy policies of your chosen LLM provider 
+            to understand how they handle your data.
+        </p>
+    </div>
+
+    <div class="section">
+        <h3>3.2 CDN Providers (Vega-Lite Libraries)</h3>
+        <p>
+            When rendering visualizations, the Extension loads Vega-Lite libraries from CDN providers 
+            (jsdelivr.net or unpkg.com). These libraries are loaded directly into the webpage context. 
+            No user data is sent to these CDN providers.
+        </p>
+    </div>
+
+    <div class="section">
+        <h3>3.3 No Other Third-Party Sharing</h3>
+        <p>
+            We do <strong>NOT</strong> share your data with:
+        </p>
+        <ul>
+            <li>Advertising platforms or data brokers</li>
+            <li>Analytics services or tracking services</li>
+            <li>Social media platforms</li>
+            <li>Any other third parties except your chosen LLM provider</li>
+        </ul>
+    </div>
+
+    <div class="highlight">
+        <strong>Limited Use Compliance:</strong> The use of information received from Google APIs (if using Gemini) 
+        will adhere to the <a href="https://developer.chrome.com/docs/webstore/program-policies/policies#privacy_policy" target="_blank">Chrome Web Store User Data Policy</a>, 
+        including the Limited Use requirements. We only use data to provide or improve the Extension's single 
+        purpose of providing AI-powered webpage analysis and visualization.
+    </div>
+
+    <h2>4. Data Storage</h2>
+
+    <div class="section">
+        <h3>4.1 Chrome Storage API</h3>
+        <p>
+            All data is stored locally in your browser using Chrome's Storage API:
+        </p>
+        <ul>
+            <li><strong>Chrome Storage Sync:</strong> Settings (API keys, configuration) are stored using 
+                Chrome's encrypted sync storage. If you have Chrome sync enabled, these settings may be 
+                synced across your devices.</li>
+            <li><strong>Chrome Storage Local:</strong> Chat history and page-specific data are stored locally 
+                and are NOT synced across devices.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>4.2 Data Retention</h3>
+        <ul>
+            <li><strong>Chat History:</strong> Stored indefinitely until you clear Chrome's extension storage 
+                or uninstall the Extension</li>
+            <li><strong>Settings:</strong> Stored until you modify or delete them</li>
+            <li><strong>Temporary Context:</strong> Temporary page context data is stored briefly and may be 
+                automatically cleaned up</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>4.3 Data Deletion</h3>
+        <p>
+            You can delete your data at any time by:
+        </p>
+        <ul>
+            <li>Clearing extension storage in Chrome's extension settings</li>
+            <li>Uninstalling the Extension (which removes all stored data)</li>
+            <li>Manually clearing individual chat histories through the Extension's interface</li>
+        </ul>
+    </div>
+
+    <h2>5. Data Security</h2>
+
+    <div class="section">
+        <h3>5.1 API Key Security</h3>
+        <p>
+            Your API keys are stored using Chrome's encrypted storage API (chrome.storage.sync). 
+            Chrome encrypts this data before syncing it across devices.
+        </p>
+    </div>
+
+    <div class="section">
+        <h3>5.2 Transmission Security</h3>
+        <p>
+            All API requests to LLM providers are made over HTTPS (encrypted connections). 
+            We do not transmit data over unencrypted connections.
+        </p>
+    </div>
+
+    <div class="section">
+        <h3>5.3 No Server Infrastructure</h3>
+        <p>
+            The Extension does not operate any servers. All processing occurs locally in your browser, 
+            except for API calls to your chosen LLM provider.
+        </p>
+    </div>
+
+    <h2>6. Permissions Explained</h2>
+
+    <div class="section">
+        <p>
+            The Extension requests the following permissions:
+        </p>
+        <ul>
+            <li><strong>activeTab:</strong> Allows the Extension to access the content of the active tab 
+                to extract visible page content</li>
+            <li><strong>storage:</strong> Allows the Extension to save your settings and chat history locally</li>
+            <li><strong>scripting:</strong> Allows the Extension to inject Vega-Lite visualization libraries 
+                into webpages to render charts</li>
+            <li><strong>host_permissions (&lt;all_urls&gt;):</strong> Allows the Extension to:
+                <ul>
+                    <li>Work on any webpage</li>
+                    <li>Make API calls to LLM providers</li>
+                    <li>Inject visualization libraries</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <h2>7. User Rights and Control</h2>
+
+    <div class="section">
+        <h3>7.1 Your Rights</h3>
+        <p>
+            You have the right to:
+        </p>
+        <ul>
+            <li><strong>Access:</strong> View your stored settings and chat history through Chrome's extension storage</li>
+            <li><strong>Modify:</strong> Change your settings at any time through the Extension's settings page</li>
+            <li><strong>Delete:</strong> Clear your chat history or uninstall the Extension to delete all data</li>
+            <li><strong>Control:</strong> Choose which LLM provider to use and configure API endpoints</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>7.2 Opt-Out</h3>
+        <p>
+            You can stop using the Extension at any time by:
+        </p>
+        <ul>
+            <li>Disabling the Extension in Chrome's extension settings</li>
+            <li>Uninstalling the Extension</li>
+        </ul>
+        <p>
+            Uninstalling the Extension will remove all stored data from your browser.
+        </p>
+    </div>
+
+    <h2>8. Children's Privacy</h2>
+
+    <div class="section">
+        <p>
+            The Extension is not intended for children under the age of 13. We do not knowingly collect 
+            personal information from children. If you believe we have collected information from a child 
+            under 13, please contact us immediately.
+        </p>
+    </div>
+
+    <h2>9. Changes to This Privacy Policy</h2>
+
+    <div class="section">
+        <p>
+            We may update this Privacy Policy from time to time. We will notify you of any changes by:
+        </p>
+        <ul>
+            <li>Updating the "Last Updated" date at the top of this policy</li>
+            <li>Posting the updated policy on this page</li>
+        </ul>
+        <p>
+            We encourage you to review this Privacy Policy periodically to stay informed about how we 
+            handle your data.
+        </p>
+    </div>
+
+    <h2>10. Contact Information</h2>
+
+    <div class="contact-info">
+        <p>
+            If you have any questions or concerns about this Privacy Policy or our data practices, 
+            please contact us:
+        </p>
+        <p>
+            <strong>Developer:</strong> Santosh Manapragada<br>
+            <strong>Extension:</strong> AI Assistant - Page Context Chat<br>
+            <strong>Email:</strong> [Your contact email]
+        </p>
+        <p>
+            <em>Note: Please replace [Your contact email] with your actual contact email address 
+            before publishing this policy.</em>
+        </p>
+    </div>
+
+    <h2>11. Compliance</h2>
+
+    <div class="section">
+        <p>
+            This Extension complies with:
+        </p>
+        <ul>
+            <li><a href="https://developer.chrome.com/docs/webstore/program-policies/policies#privacy_policy" target="_blank">Chrome Web Store Program Policies</a></li>
+            <li><a href="https://developer.chrome.com/docs/webstore/program-policies/policies#privacy_policy" target="_blank">Chrome Web Store User Data Policy</a></li>
+            <li>Limited Use requirements for Google APIs (if using Gemini)</li>
+        </ul>
+        <p>
+            We are committed to protecting your privacy and handling your data responsibly. 
+            We only collect and use data necessary to provide the Extension's functionality, 
+            and we do not sell or share your data with third parties except as necessary to 
+            provide the service (i.e., sending data to your chosen LLM provider).
+        </p>
+    </div>
+
+    <div class="highlight">
+        <p>
+            <strong>Summary:</strong> This Extension collects page content and your messages to provide 
+            AI-powered analysis. Data is sent only to your chosen LLM provider. All data is stored locally 
+            in your browser. We do not track you, sell your data, or share it with advertising platforms.
+        </p>
+    </div>
+
+    <hr style="margin: 40px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+    <p style="text-align: center; color: #666; font-size: 0.9em;">
+        © 2026 AI Assistant - Page Context Chat. All rights reserved.
+    </p>
+</body>
+</html>

@@ -19,10 +19,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Node.js (for zip utility)
+      - name: Set up Node.js (for reading manifest version)
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+      
+      - name: Verify Python is available
+        run: |
+          python3 --version
+          echo "Python will be used to create ZIP with explicit path control"
       
       - name: Read version from manifest
         id: get_version
@@ -59,35 +64,81 @@ jobs:
           # Remove existing ZIP if present
           rm -f "$ZIP_NAME"
           
-          # Method: Create ZIP from within temp directory
-          # This ensures files are added at root level (not in a subdirectory)
-          cd "$TEMP_DIR"
-          
-          # Add all files and directories to ZIP
-          # The key is being INSIDE the directory when zipping, so paths are relative to current dir
-          zip -r "../$ZIP_NAME" . \
-            -x "*.DS_Store" \
-            -x "*.git*" \
-            -x "*.zip" \
-            -x "*.sh" \
-            -x "zip-verify-*"
-          
-          cd ..
+          # Use Python to create ZIP with explicit control over paths
+          # This guarantees all files are at root level
+          python3 << EOF
+import zipfile
+import os
+from pathlib import Path
+
+temp_dir = Path("$TEMP_DIR")
+zip_path = Path("$ZIP_NAME")
+
+# Exclude patterns
+exclude_patterns = ['.DS_Store', '.git', '.zip', '.sh']
+
+def should_exclude(file_path):
+    """Check if file should be excluded"""
+    name = file_path.name
+    return any(name.endswith(pattern) or pattern in name for pattern in exclude_patterns)
+
+# Create ZIP file
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    # Add all files from temp directory
+    for root, dirs, files in os.walk(temp_dir):
+        # Filter out excluded directories
+        dirs[:] = [d for d in dirs if not should_exclude(Path(d))]
+        
+        for file in files:
+            if should_exclude(Path(file)):
+                continue
+            
+            file_path = Path(root) / file
+            # Calculate archive path: remove temp_dir prefix to put files at root
+            archive_path = file_path.relative_to(temp_dir)
+            # Convert to string with forward slashes (ZIP standard)
+            # Use as_posix() which handles path conversion correctly
+            archive_path_str = archive_path.as_posix()
+            
+            print(f"Adding: {archive_path_str}")
+            zipf.write(file_path, archive_path_str)
+
+print(f"\\n✅ ZIP created: {zip_path}")
+print(f"✅ All files are at root level")
+EOF
           
           # Show ZIP contents for debugging
           echo ""
-          echo "=== ZIP File Contents (first 30 entries) ==="
-          unzip -l "$ZIP_NAME" | head -30
+          echo "=== ZIP File Contents (all entries) ==="
+          unzip -l "$ZIP_NAME"
           echo ""
           
-          # CRITICAL: Verify manifest.json path in ZIP listing
-          echo "=== Checking for manifest.json in ZIP ==="
-          if unzip -l "$ZIP_NAME" | grep -E "^[[:space:]]*[0-9]+.*manifest.json[[:space:]]*$" | grep -v "/"; then
-            echo "✅ manifest.json found at root level in ZIP listing"
+          # CRITICAL: Verify all files are at root (no leading slashes or subdirectories for main files)
+          echo "=== Verifying File Paths in ZIP ==="
+          REQUIRED_FILES=("manifest.json" "background.js" "content.js" "content.css" "popup.html" "popup.js" "settings.html" "settings.js")
+          
+          for file in "${REQUIRED_FILES[@]}"; do
+            # Check if file exists at root (not in a subdirectory)
+            if unzip -l "$ZIP_NAME" | grep -E "^[[:space:]]*[0-9]+.*[[:space:]]+${file}[[:space:]]*$" | grep -vE "^[[:space:]]*[0-9]+.*[[:space:]]+[^/]+/${file}" > /dev/null; then
+              echo "✅ $file is at root level"
+            else
+              echo "❌ ERROR: $file is NOT at root level or not found!"
+              echo "   Looking for $file:"
+              unzip -l "$ZIP_NAME" | grep "$file" || echo "   NOT FOUND!"
+              exit 1
+            fi
+          done
+          
+          # Verify icons directory exists
+          if unzip -l "$ZIP_NAME" | grep -qE "^[[:space:]]*[0-9]+.*icons/"; then
+            echo "✅ icons/ directory found"
           else
-            echo "⚠️  Checking all manifest.json entries:"
-            unzip -l "$ZIP_NAME" | grep "manifest.json" || echo "❌ manifest.json NOT FOUND in ZIP!"
+            echo "❌ ERROR: icons/ directory not found!"
+            exit 1
           fi
+          
+          echo ""
+          echo "✅ All required files verified at root level"
           echo ""
           
           echo ""

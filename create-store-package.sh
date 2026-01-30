@@ -29,20 +29,49 @@ ZIP_NAME="ai-chrome-extension-v1.0.0.zip"
 # Remove existing ZIP if present
 rm -f "$ZIP_NAME"
 
-# Create ZIP from within temp directory
-# This ensures files are at root level (not in a subdirectory)
-cd "$TEMP_DIR"
+# Use Python to create ZIP with explicit control over paths
+# This guarantees all files are at root level
+echo "Creating ZIP file with Python (explicit path control)..."
+python3 << 'PYTHON_SCRIPT'
+import zipfile
+import os
+from pathlib import Path
 
-# Add all files and directories to ZIP
-# Being INSIDE the directory when zipping ensures paths are relative to current dir
-zip -r "../$ZIP_NAME" . \
-  -x "*.DS_Store" \
-  -x "*.git*" \
-  -x "*.zip" \
-  -x "*.sh" \
-  -x "zip-verify-*"
+temp_dir = Path("chrome-store-package")
+zip_path = Path("ai-chrome-extension-v1.0.0.zip")
 
-cd ..
+# Exclude patterns
+exclude_patterns = ['.DS_Store', '.git', '.zip', '.sh']
+
+def should_exclude(file_path):
+    """Check if file should be excluded"""
+    name = file_path.name
+    return any(name.endswith(pattern) or pattern in name for pattern in exclude_patterns)
+
+# Create ZIP file
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    # Add all files from temp directory
+    for root, dirs, files in os.walk(temp_dir):
+        # Filter out excluded directories
+        dirs[:] = [d for d in dirs if not should_exclude(Path(d))]
+        
+        for file in files:
+            if should_exclude(Path(file)):
+                continue
+            
+            file_path = Path(root) / file
+            # Calculate archive path: remove temp_dir prefix to put files at root
+            archive_path = file_path.relative_to(temp_dir)
+            # Convert to string with forward slashes (ZIP standard)
+            # Use as_posix() which handles path conversion correctly
+            archive_path_str = archive_path.as_posix()
+            
+            print(f"Adding: {archive_path_str}")
+            zipf.write(file_path, archive_path_str)
+
+print(f"\n✅ ZIP created: {zip_path}")
+print(f"✅ All files are at root level")
+PYTHON_SCRIPT
 
 # Show ZIP contents for debugging
 echo ""
