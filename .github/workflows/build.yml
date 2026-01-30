@@ -1,0 +1,121 @@
+name: Build Chrome Extension
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js (for zip utility)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Read version from manifest
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extension version: $VERSION"
+      
+      - name: Create Chrome Web Store package
+        run: |
+          echo "Creating Chrome Web Store package..."
+          
+          # Create temporary directory
+          TEMP_DIR="chrome-store-package"
+          mkdir -p "$TEMP_DIR"
+          
+          # Copy required files
+          echo "Copying files..."
+          cp manifest.json "$TEMP_DIR/"
+          cp background.js "$TEMP_DIR/"
+          cp content.js "$TEMP_DIR/"
+          cp content.css "$TEMP_DIR/"
+          cp popup.html "$TEMP_DIR/"
+          cp popup.js "$TEMP_DIR/"
+          cp settings.html "$TEMP_DIR/"
+          cp settings.js "$TEMP_DIR/"
+          
+          # Copy icons directory
+          cp -r icons "$TEMP_DIR/"
+          
+          # Create ZIP file
+          ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
+          cd "$TEMP_DIR"
+          zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*"
+          cd ..
+          
+          # Clean up temp directory
+          rm -rf "$TEMP_DIR"
+          
+          echo "✅ Package created: $ZIP_NAME"
+          echo "package_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+      
+      - name: Verify package contents
+        run: |
+          ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
+          echo "Verifying package contents..."
+          unzip -l "$ZIP_NAME" | head -20
+          
+          # Check for required files
+          REQUIRED_FILES=("manifest.json" "background.js" "content.js" "content.css" "popup.html" "popup.js" "settings.html" "settings.js")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if unzip -l "$ZIP_NAME" | grep -q "$file"; then
+              echo "✅ Found: $file"
+            else
+              echo "❌ Missing: $file"
+              exit 1
+            fi
+          done
+          
+          # Check for icons
+          if unzip -l "$ZIP_NAME" | grep -q "icons/"; then
+            echo "✅ Found: icons directory"
+          else
+            echo "❌ Missing: icons directory"
+            exit 1
+          fi
+      
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-package
+          path: ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip
+          retention-days: 30
+      
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## Chrome Extension v${{ steps.get_version.outputs.version }}
+            
+            ### Installation
+            1. Download `ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip`
+            2. Extract the ZIP file
+            3. Open Chrome and go to `chrome://extensions/`
+            4. Enable "Developer mode"
+            5. Click "Load unpacked" and select the extracted folder
+            
+            ### Changes
+            See commit history for details.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

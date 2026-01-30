@@ -1,0 +1,37 @@
+# Chrome Extension Build Artifacts
+*.zip
+chrome-store-package/
+*.crx
+*.pem
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node modules (if added in future)
+node_modules/
+
+# Environment files
+.env
+.env.local

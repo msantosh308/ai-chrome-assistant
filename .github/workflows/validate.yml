@@ -1,0 +1,153 @@
+name: Validate Extension
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate manifest.json
+        run: |
+          echo "Validating manifest.json..."
+          
+          # Check if manifest.json exists
+          if [ ! -f "manifest.json" ]; then
+            echo "❌ manifest.json not found"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))" || exit 1
+          echo "✅ manifest.json is valid JSON"
+          
+          # Check required fields
+          node << 'EOF'
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          
+          const required = ['manifest_version', 'name', 'version'];
+          const missing = required.filter(field => !manifest[field]);
+          
+          if (missing.length > 0) {
+            console.error('❌ Missing required fields:', missing.join(', '));
+            process.exit(1);
+          }
+          
+          console.log('✅ Required fields present');
+          console.log('   Manifest Version:', manifest.manifest_version);
+          console.log('   Name:', manifest.name);
+          console.log('   Version:', manifest.version);
+          EOF
+      
+      - name: Check required files
+        run: |
+          echo "Checking required files..."
+          
+          REQUIRED_FILES=(
+            "manifest.json"
+            "background.js"
+            "content.js"
+            "content.css"
+            "popup.html"
+            "popup.js"
+            "settings.html"
+            "settings.js"
+          )
+          
+          MISSING_FILES=()
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              MISSING_FILES+=("$file")
+            fi
+          done
+          
+          if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+            echo "❌ Missing required files:"
+            printf '   %s\n' "${MISSING_FILES[@]}"
+            exit 1
+          fi
+          
+          echo "✅ All required files present"
+      
+      - name: Check icons directory
+        run: |
+          echo "Checking icons..."
+          
+          if [ ! -d "icons" ]; then
+            echo "❌ icons directory not found"
+            exit 1
+          fi
+          
+          REQUIRED_ICONS=("icon16.png" "icon48.png" "icon128.png")
+          MISSING_ICONS=()
+          
+          for icon in "${REQUIRED_ICONS[@]}"; do
+            if [ ! -f "icons/$icon" ]; then
+              MISSING_ICONS+=("icons/$icon")
+            fi
+          done
+          
+          if [ ${#MISSING_ICONS[@]} -gt 0 ]; then
+            echo "❌ Missing icons:"
+            printf '   %s\n' "${MISSING_ICONS[@]}"
+            exit 1
+          fi
+          
+          echo "✅ All required icons present"
+      
+      - name: Validate JavaScript syntax
+        run: |
+          echo "Validating JavaScript files..."
+          
+          JS_FILES=("background.js" "content.js" "popup.js" "settings.js")
+          
+          for file in "${JS_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              # Basic syntax check using node
+              node -c "$file" && echo "✅ $file syntax is valid" || {
+                echo "❌ $file has syntax errors"
+                exit 1
+              }
+            fi
+          done
+      
+      - name: Check file sizes
+        run: |
+          echo "Checking file sizes..."
+          
+          MAX_SIZE=5242880 # 5MB in bytes
+          LARGE_FILES=()
+          
+          for file in *.js *.html *.css; do
+            if [ -f "$file" ]; then
+              size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+              if [ "$size" -gt "$MAX_SIZE" ]; then
+                LARGE_FILES+=("$file ($(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo ${size}B))")
+              fi
+            fi
+          done
+          
+          if [ ${#LARGE_FILES[@]} -gt 0 ]; then
+            echo "⚠️  Large files detected (may affect extension performance):"
+            printf '   %s\n' "${LARGE_FILES[@]}"
+          else
+            echo "✅ All files are within reasonable size limits"
+          fi
+      
+      - name: Summary
+        run: |
+          echo "## ✅ Validation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All checks passed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Extension is ready for packaging**" >> $GITHUB_STEP_SUMMARY
