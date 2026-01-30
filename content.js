@@ -1278,6 +1278,9 @@ function extractSemanticJSON() {
     }
   };
   
+  // Track processed containers to avoid duplicate extraction
+  const processedContainers = new WeakSet();
+  
   // Extract visible content
   const walker = document.createTreeWalker(
     document.body,
@@ -1286,6 +1289,11 @@ function extractSemanticJSON() {
       acceptNode: function(node) {
         // Skip hidden, script, style elements
         if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') {
+          return NodeFilter.FILTER_REJECT;
+        }
+        
+        // Skip if already processed as part of a table container
+        if (processedContainers.has(node)) {
           return NodeFilter.FILTER_REJECT;
         }
         
@@ -1304,14 +1312,36 @@ function extractSemanticJSON() {
   let node;
   
   while (node = walker.nextNode()) {
+    // Check if this is a div that might be a table container
+    if (node.tagName.toLowerCase() === 'div') {
+      const divTableData = extractDivBasedTable(node);
+      if (divTableData) {
+        // Mark this container and its children as processed
+        markContainerAsProcessed(node, processedContainers);
+        elements.push(divTableData);
+        continue; // Skip processing children
+      }
+    }
+    
     const elementData = extractElementData(node);
     if (elementData) {
+      // If this is a table, mark its children as processed
+      if (elementData.type === 'table' && node.tagName.toLowerCase() === 'table') {
+        markContainerAsProcessed(node, processedContainers);
+      }
       elements.push(elementData);
     }
   }
   
   pageData.ui_state.content = elements;
   return pageData;
+}
+
+function markContainerAsProcessed(container, processedSet) {
+  processedSet.add(container);
+  // Mark all descendants as processed to avoid duplicate extraction
+  const descendants = container.querySelectorAll('*');
+  descendants.forEach(desc => processedSet.add(desc));
 }
 
 function extractElementData(element) {
@@ -1328,7 +1358,7 @@ function extractElementData(element) {
     text: text.substring(0, 500) // Limit text length
   };
   
-  // Extract table data
+  // Extract table data (actual <table> elements)
   if (tagName === 'table') {
     data.type = 'table';
     data.rows = [];
@@ -1340,6 +1370,8 @@ function extractElementData(element) {
       }
     });
   }
+  
+  // Note: div-based tables are handled in extractSemanticJSON before this function is called
   
   // Extract link data
   if (tagName === 'a') {
@@ -1359,4 +1391,310 @@ function extractElementData(element) {
   }
   
   return data;
+}
+
+function extractDivBasedTable(container) {
+  // Check if this div has table-like structure
+  const style = window.getComputedStyle(container);
+  const role = container.getAttribute('role');
+  const className = container.className || '';
+  
+  // Method 1: Check for ARIA table role
+  if (role === 'table' || role === 'grid') {
+    return extractDivTableByRole(container);
+  }
+  
+  // Method 2: Check for CSS display: table properties
+  if (style.display === 'table' || style.display === 'grid') {
+    return extractDivTableByDisplay(container);
+  }
+  
+  // Method 3: Check for common table class names
+  const tableClassPatterns = [
+    /table/i, /grid/i, /datagrid/i, /data-table/i, /dataTable/i
+  ];
+  if (tableClassPatterns.some(pattern => pattern.test(className))) {
+    return extractDivTableByStructure(container);
+  }
+  
+  // Method 4: Detect grid-like structure with consistent columns
+  return extractDivTableByGridPattern(container);
+}
+
+function extractDivTableByRole(container) {
+  const rows = [];
+  
+  // Find rows by role
+  const rowElements = container.querySelectorAll('[role="row"]');
+  
+  if (rowElements.length === 0) {
+    // Try finding rows by common patterns
+    const children = Array.from(container.children);
+    children.forEach(child => {
+      const childRole = child.getAttribute('role');
+      if (childRole === 'row' || childRole === 'rowgroup') {
+        rowElements.push(child);
+      } else if (child.children.length > 0) {
+        // Check if child contains row-like structures
+        const nestedRows = child.querySelectorAll('[role="row"]');
+        nestedRows.forEach(row => rowElements.push(row));
+      }
+    });
+  }
+  
+  rowElements.forEach(row => {
+    const cells = [];
+    const cellElements = row.querySelectorAll('[role="cell"], [role="columnheader"], [role="rowheader"], [role="gridcell"]');
+    
+    if (cellElements.length > 0) {
+      cellElements.forEach(cell => {
+        const cellText = cell.textContent?.trim();
+        if (cellText) {
+          cells.push(cellText);
+        }
+      });
+    } else {
+      // Fallback: check direct children
+      const directChildren = Array.from(row.children);
+      directChildren.forEach(child => {
+        const childText = child.textContent?.trim();
+        if (childText && childText.length > 0) {
+          cells.push(childText);
+        }
+      });
+    }
+    
+    if (cells.length > 0) {
+      rows.push(cells);
+    }
+  });
+  
+  if (rows.length >= 2) { // At least header + 1 data row
+    return {
+      tag: 'div',
+      type: 'table',
+      rows: rows,
+      text: container.textContent?.trim().substring(0, 500) || ''
+    };
+  }
+  
+  return null;
+}
+
+function extractDivTableByDisplay(container) {
+  const rows = [];
+  const children = Array.from(container.children);
+  
+  children.forEach(child => {
+    const childStyle = window.getComputedStyle(child);
+    if (childStyle.display === 'table-row' || childStyle.display === 'grid') {
+      const cells = [];
+      const cellChildren = Array.from(child.children);
+      
+      cellChildren.forEach(cell => {
+        const cellStyle = window.getComputedStyle(cell);
+        if (cellStyle.display === 'table-cell' || cellStyle.display === 'grid-cell') {
+          const cellText = cell.textContent?.trim();
+          if (cellText) {
+            cells.push(cellText);
+          }
+        }
+      });
+      
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
+    }
+  });
+  
+  if (rows.length >= 2) {
+    return {
+      tag: 'div',
+      type: 'table',
+      rows: rows,
+      text: container.textContent?.trim().substring(0, 500) || ''
+    };
+  }
+  
+  return null;
+}
+
+function extractDivTableByStructure(container) {
+  // Look for common table structure patterns
+  // Pattern 1: div.table > div.row > div.cell
+  const rowSelectors = [
+    '.row', '[class*="row"]', '[class*="Row"]',
+    '.tr', '[class*="tr"]', '[class*="Tr"]'
+  ];
+  
+  let rows = [];
+  
+  // First try with class-based selectors
+  for (const selector of rowSelectors) {
+    const rowElements = container.querySelectorAll(selector);
+    if (rowElements.length >= 2) {
+      rowElements.forEach(row => {
+        const cells = [];
+        const cellSelectors = [
+          '.cell', '.col', '.column', '[class*="cell"]', '[class*="Cell"]',
+          '[class*="col"]', '[class*="Col"]', '[class*="column"]', '[class*="Column"]'
+        ];
+        
+        for (const cellSelector of cellSelectors) {
+          const cellElements = row.querySelectorAll(cellSelector);
+          if (cellElements.length > 0) {
+            cellElements.forEach(cell => {
+              const cellText = cell.textContent?.trim();
+              if (cellText && cellText.length > 0) {
+                cells.push(cellText);
+              }
+            });
+            break; // Found cells, stop searching
+          }
+        }
+        
+        // If no cells found with selectors, try direct children
+        if (cells.length === 0) {
+          const directChildren = Array.from(row.children);
+          directChildren.forEach(child => {
+            const cellText = child.textContent?.trim();
+            if (cellText && cellText.length > 0) {
+              cells.push(cellText);
+            }
+          });
+        }
+        
+        if (cells.length > 0) {
+          rows.push(cells);
+        }
+      });
+      
+      if (rows.length >= 2) {
+        break; // Found table structure
+      } else {
+        rows = []; // Reset if not enough rows
+      }
+    }
+  }
+  
+  // If no rows found with class selectors, try direct children
+  if (rows.length === 0) {
+    const directChildren = Array.from(container.children);
+    if (directChildren.length >= 2) {
+      directChildren.forEach(row => {
+        const cells = [];
+        const rowChildren = Array.from(row.children);
+        rowChildren.forEach(cell => {
+          const cellText = cell.textContent?.trim();
+          if (cellText && cellText.length > 0) {
+            cells.push(cellText);
+          }
+        });
+        if (cells.length > 0) {
+          rows.push(cells);
+        }
+      });
+    }
+  }
+  
+  if (rows.length >= 2) {
+    return {
+      tag: 'div',
+      type: 'table',
+      rows: rows,
+      text: container.textContent?.trim().substring(0, 500) || ''
+    };
+  }
+  
+  return null;
+}
+
+function extractDivTableByGridPattern(container) {
+  // Detect grid-like patterns by analyzing child structure
+  const children = Array.from(container.children);
+  
+  if (children.length < 2) {
+    return null;
+  }
+  
+  // Check if children have similar structure (potential rows)
+  const firstChildCells = getCellCount(children[0]);
+  if (firstChildCells === 0) {
+    return null;
+  }
+  
+  // Check if at least 70% of children have similar cell counts
+  let matchingRows = 0;
+  const rows = [];
+  
+  children.forEach(child => {
+    const cellCount = getCellCount(child);
+    if (cellCount > 0 && Math.abs(cellCount - firstChildCells) <= 1) {
+      matchingRows++;
+      const cells = extractCellsFromElement(child);
+      if (cells.length > 0) {
+        rows.push(cells);
+      }
+    }
+  });
+  
+  // If at least 2 rows with consistent structure
+  if (rows.length >= 2 && matchingRows >= Math.ceil(children.length * 0.7)) {
+    return {
+      tag: 'div',
+      type: 'table',
+      rows: rows,
+      text: container.textContent?.trim().substring(0, 500) || ''
+    };
+  }
+  
+  return null;
+}
+
+function getCellCount(element) {
+  // Count potential cells (divs with text content)
+  const children = Array.from(element.children);
+  let cellCount = 0;
+  
+  children.forEach(child => {
+    const text = child.textContent?.trim();
+    if (text && text.length > 0) {
+      // Check if it's not a nested container
+      const childChildren = Array.from(child.children);
+      if (childChildren.length === 0 || childChildren.every(c => !c.textContent?.trim())) {
+        cellCount++;
+      }
+    }
+  });
+  
+  return cellCount;
+}
+
+function extractCellsFromElement(element) {
+  const cells = [];
+  const children = Array.from(element.children);
+  
+  children.forEach(child => {
+    const text = child.textContent?.trim();
+    if (text && text.length > 0) {
+      // Check if it's a leaf node (no meaningful nested children)
+      const childChildren = Array.from(child.children);
+      const hasNestedContent = childChildren.some(c => {
+        const cText = c.textContent?.trim();
+        return cText && cText.length > 0;
+      });
+      
+      if (!hasNestedContent) {
+        cells.push(text);
+      } else {
+        // Try to extract from nested structure
+        const nestedText = child.textContent?.trim();
+        if (nestedText) {
+          cells.push(nestedText);
+        }
+      }
+    }
+  });
+  
+  return cells;
 }

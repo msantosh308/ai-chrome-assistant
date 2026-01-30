@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Sales in India - Div-Based Tables</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    /* Div-based table using CSS Grid */
+    .data-table {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+    }
+    
+    /* Table header row */
+    .table-header {
+      display: contents;
+    }
+    
+    .table-header > div {
+      background: #f5f5f5;
+      padding: 16px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Table body rows */
+    .table-body {
+      display: contents;
+    }
+    
+    .table-row {
+      display: contents;
+    }
+    
+    .table-row > div {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      color: #555;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    
+    .table-row:hover > div {
+      background-color: #f9f9f9;
+    }
+    
+    /* Year row styling */
+    .year-row {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .year-row:hover > div {
+      background-color: #f0f7ff;
+    }
+    
+    .year-row.expanded > div {
+      background-color: #e8f0fe;
+    }
+    
+    .year-cell {
+      font-weight: 600;
+      color: #667eea;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .expand-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      text-align: center;
+      line-height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      color: white;
+      font-size: 12px;
+      transition: transform 0.3s;
+    }
+    
+    .year-row.expanded .expand-icon {
+      transform: rotate(90deg);
+    }
+    
+    /* Brand row styling */
+    .brand-row {
+      display: none;
+      cursor: pointer;
+    }
+    
+    .brand-row.year-visible {
+      display: contents;
+    }
+    
+    .brand-row > div:first-child {
+      padding-left: 50px;
+      color: #555;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .brand-row:hover > div {
+      background-color: #f0f0f0;
+    }
+    
+    .brand-row .expand-icon {
+      background: #764ba2;
+    }
+    
+    .brand-row.brand-expanded .expand-icon {
+      transform: rotate(90deg);
+    }
+    
+    /* Month row styling */
+    .month-row {
+      display: none;
+    }
+    
+    .month-row.brand-expanded {
+      display: contents;
+    }
+    
+    .month-row > div:first-child {
+      padding-left: 90px;
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .month-row:hover > div {
+      background-color: #eeeeee;
+    }
+    
+    .sales-cell {
+      text-align: right;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .total-cell {
+      text-align: right;
+      font-weight: 700;
+      color: #667eea;
+      font-size: 15px;
+    }
+    
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f7ff;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .summary h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    
+    .summary p {
+      color: #555;
+      line-height: 1.6;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card h4 {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚗 Car Sales in India</h1>
+      <p>Yearly and Monthly Sales Data (Div-Based Table Structure)</p>
+    </div>
+    
+    <div class="content">
+      <div class="data-table" id="salesTable">
+        <!-- Header -->
+        <div class="table-header">
+          <div>Year / Brand / Month</div>
+          <div>Total Sales (Units)</div>
+          <div>Growth (%)</div>
+        </div>
+        
+        <!-- Body will be inserted here -->
+        <div class="table-body" id="tableBody">
+          <!-- Year rows will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="summary">
+        <h3>📊 About This Data</h3>
+        <p>
+          This table shows car sales data for India from 2019 to 2024 with brand-wise breakdown. 
+          Click on any year row to expand and view car brands. Click on any brand to expand and view 
+          month-wise sales breakdown. The data includes total units sold per year, growth percentage compared 
+          to the previous year, brand-wise totals, and detailed monthly figures for each brand. 
+          This page uses div tags with CSS Grid for table presentation instead of HTML table elements.
+        </p>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card">
+          <h4>Total Sales (2019-2024)</h4>
+          <div class="value" id="totalSales">0</div>
+        </div>
+        <div class="stat-card">
+          <h4>Average Annual Growth</h4>
+          <div class="value" id="avgGrowth">0%</div>
+        </div>
+        <div class="stat-card">
+          <h4>Best Year</h4>
+          <div class="value" id="bestYear">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Car sales data for India (2019-2024) with brands
+    const salesData = {
+      2019: {
+        total: 3166415,
+        growth: 0,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1450000,
+            months: {
+              'January': 118000, 'February': 110000, 'March': 132000,
+              'April': 115000, 'May': 120000, 'June': 115000,
+              'July': 110000, 'August': 112000, 'September': 122000,
+              'October': 125000, 'November': 120000, 'December': 133000
+            }
+          },
+          'Hyundai': {
+            total: 520000,
+            months: {
+              'January': 42000, 'February': 39000, 'March': 48000,
+              'April': 42000, 'May': 44000, 'June': 42000,
+              'July': 40000, 'August': 41000, 'September': 45000,
+              'October': 46000, 'November': 44000, 'December': 49000
+            }
+          },
+          'Tata Motors': {
+            total: 450000,
+            months: {
+              'January': 36000, 'February': 33000, 'March': 41000,
+              'April': 36000, 'May': 38000, 'June': 36000,
+              'July': 34000, 'August': 35000, 'September': 39000,
+              'October': 40000, 'November': 38000, 'December': 42000
+            }
+          },
+          'Mahindra': {
+            total: 380000,
+            months: {
+              'January': 31000, 'February': 29000, 'March': 35000,
+              'April': 31000, 'May': 32000, 'June': 31000,
+              'July': 29000, 'August': 30000, 'September': 33000,
+              'October': 34000, 'November': 32000, 'December': 36000
+            }
+          },
+          'Honda': {
+            total: 180000,
+            months: {
+              'January': 14500, 'February': 13500, 'March': 16500,
+              'April': 14500, 'May': 15000, 'June': 14500,
+              'July': 13800, 'August': 14000, 'September': 15500,
+              'October': 16000, 'November': 15000, 'December': 16700
+            }
+          },
+          'Toyota': {
+            total: 136415,
+            months: {
+              'January': 10890, 'February': 9950, 'March': 12170,
+              'April': 10420, 'May': 11340, 'June': 10780,
+              'July': 10760, 'August': 10670, 'September': 11450,
+              'October': 11890, 'November': 11450, 'December': 12745
+            }
+          }
+        }
+      },
+      2020: {
+        total: 2430000,
+        growth: -23.2,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1110000,
+            months: {
+              'January': 98000, 'February': 90000, 'March': 85000,
+              'April': 18000, 'May': 50000, 'June': 90000,
+              'July': 98000, 'August': 105000, 'September': 112000,
+              'October': 118000, 'November': 122000, 'December': 125000
+            }
+          },
+          'Hyundai': {
+            total: 400000,
+            months: {
+              'January': 35000, 'February': 32000, 'March': 30000,
+              'April': 6000, 'May': 18000, 'June': 32000,
+              'July': 35000, 'August': 37000, 'September': 40000,
+              'October': 42000, 'November': 44000, 'December': 45000
+            }
+          },
+          'Tata Motors': {
+            total: 350000,
+            months: {
+              'January': 30000, 'February': 28000, 'March': 26000,
+              'April': 5000, 'May': 15000, 'June': 28000,
+              'July': 30000, 'August': 32000, 'September': 35000,
+              'October': 37000, 'November': 38000, 'December': 40000
+            }
+          },
+          'Mahindra': {
+            total: 300000,
+            months: {
+              'January': 26000, 'February': 24000, 'March': 22000,
+              'April': 4000, 'May': 12000, 'June': 24000,
+              'July': 26000, 'August': 28000, 'September': 30000,
+              'October': 32000, 'November': 33000, 'December': 35000
+            }
+          },
+          'Honda': {
+            total: 140000,
+            months: {
+              'January': 12000, 'February': 11000, 'March': 10000,
+              'April': 2000, 'May': 6000, 'June': 11000,
+              'July': 12000, 'August': 13000, 'September': 14000,
+              'October': 15000, 'November': 15500, 'December': 16000
+            }
+          },
+          'Toyota': {
+            total: 130000,
+            months: {
+              'January': 10670, 'February': 9950, 'March': 9230,
+              'April': 2000, 'May': 5670, 'June': 9950,
+              'July': 10670, 'August': 11450, 'September': 12350,
+              'October': 13050, 'November': 13450, 'December': 13890
+            }
+          }
+        }
+      },
+      2021: {
+        total: 3080000,
+        growth: 26.7,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1400000,
+            months: {
+              'January': 112000, 'February': 104000, 'March': 125000,
+              'April': 117000, 'May': 121000, 'June': 125000,
+              'July': 130000, 'August': 135000, 'September': 145000,
+              'October': 150000, 'November': 155000, 'December': 160000
+            }
+          },
+          'Hyundai': {
+            total: 510000,
+            months: {
+              'January': 41000, 'February': 38000, 'March': 46000,
+              'April': 43000, 'May': 45000, 'June': 46000,
+              'July': 48000, 'August': 50000, 'September': 54000,
+              'October': 56000, 'November': 58000, 'December': 60000
+            }
+          },
+          'Tata Motors': {
+            total: 440000,
+            months: {
+              'January': 35000, 'February': 33000, 'March': 40000,
+              'April': 37000, 'May': 39000, 'June': 40000,
+              'July': 42000, 'August': 44000, 'September': 47000,
+              'October': 49000, 'November': 51000, 'December': 53000
+            }
+          },
+          'Mahindra': {
+            total: 380000,
+            months: {
+              'January': 30000, 'February': 28000, 'March': 34000,
+              'April': 32000, 'May': 33000, 'June': 34000,
+              'July': 36000, 'August': 38000, 'September': 41000,
+              'October': 43000, 'November': 45000, 'December': 47000
+            }
+          },
+          'Honda': {
+            total: 190000,
+            months: {
+              'January': 15000, 'February': 14000, 'March': 17000,
+              'April': 16000, 'May': 16500, 'June': 17000,
+              'July': 18000, 'August': 19000, 'September': 20500,
+              'October': 21500, 'November': 22500, 'December': 23500
+            }
+          },
+          'Toyota': {
+            total: 160000,
+            months: {
+              'January': 12670, 'February': 11850, 'March': 14290,
+              'April': 13450, 'May': 13950, 'June': 14290,
+              'July': 14850, 'August': 15450, 'September': 16670,
+              'October': 17290, 'November': 17950, 'December': 18570
+            }
+          }
+        }
+      },
+      2022: {
+        total: 3850000,
+        growth: 25.0,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1750000,
+            months: {
+              'January': 140000, 'February': 145000, 'March': 150000,
+              'April': 155000, 'May': 160000, 'June': 165000,
+              'July': 170000, 'August': 175000, 'September': 180000,
+              'October': 185000, 'November': 190000, 'December': 195000
+            }
+          },
+          'Hyundai': {
+            total: 640000,
+            months: {
+              'January': 51000, 'February': 53000, 'March': 55000,
+              'April': 57000, 'May': 59000, 'June': 61000,
+              'July': 63000, 'August': 65000, 'September': 67000,
+              'October': 69000, 'November': 71000, 'December': 73000
+            }
+          },
+          'Tata Motors': {
+            total: 550000,
+            months: {
+              'January': 44000, 'February': 46000, 'March': 48000,
+              'April': 50000, 'May': 52000, 'June': 54000,
+              'July': 56000, 'August': 58000, 'September': 60000,
+              'October': 62000, 'November': 64000, 'December': 66000
+            }
+          },
+          'Mahindra': {
+            total: 480000,
+            months: {
+              'January': 38000, 'February': 40000, 'March': 42000,
+              'April': 44000, 'May': 46000, 'June': 48000,
+              'July': 50000, 'August': 52000, 'September': 54000,
+              'October': 56000, 'November': 58000, 'December': 60000
+            }
+          },
+          'Honda': {
+            total: 240000,
+            months: {
+              'January': 19000, 'February': 20000, 'March': 21000,
+              'April': 22000, 'May': 23000, 'June': 24000,
+              'July': 25000, 'August': 26000, 'September': 27000,
+              'October': 28000, 'November': 29000, 'December': 30000
+            }
+          },
+          'Toyota': {
+            total: 200000,
+            months: {
+              'January': 15670, 'February': 16450, 'March': 17290,
+              'April': 18150, 'May': 19000, 'June': 19850,
+              'July': 20700, 'August': 21550, 'September': 22400,
+              'October': 23250, 'November': 24100, 'December': 24950
+            }
+          }
+        }
+      },
+      2023: {
+        total: 4100000,
+        growth: 6.5,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1860000,
+            months: {
+              'January': 150000, 'February': 155000, 'March': 160000,
+              'April': 165000, 'May': 170000, 'June': 175000,
+              'July': 180000, 'August': 185000, 'September': 190000,
+              'October': 195000, 'November': 200000, 'December': 205000
+            }
+          },
+          'Hyundai': {
+            total: 680000,
+            months: {
+              'January': 55000, 'February': 57000, 'March': 59000,
+              'April': 61000, 'May': 63000, 'June': 65000,
+              'July': 67000, 'August': 69000, 'September': 71000,
+              'October': 73000, 'November': 75000, 'December': 77000
+            }
+          },
+          'Tata Motors': {
+            total: 590000,
+            months: {
+              'January': 48000, 'February': 50000, 'March': 52000,
+              'April': 54000, 'May': 56000, 'June': 58000,
+              'July': 60000, 'August': 62000, 'September': 64000,
+              'October': 66000, 'November': 68000, 'December': 70000
+            }
+          },
+          'Mahindra': {
+            total: 510000,
+            months: {
+              'January': 41000, 'February': 43000, 'March': 45000,
+              'April': 47000, 'May': 49000, 'June': 51000,
+              'July': 53000, 'August': 55000, 'September': 57000,
+              'October': 59000, 'November': 61000, 'December': 63000
+            }
+          },
+          'Honda': {
+            total: 255000,
+            months: {
+              'January': 20500, 'February': 21500, 'March': 22500,
+              'April': 23500, 'May': 24500, 'June': 25500,
+              'July': 26500, 'August': 27500, 'September': 28500,
+              'October': 29500, 'November': 30500, 'December': 31500
+            }
+          },
+          'Toyota': {
+            total: 213000,
+            months: {
+              'January': 17150, 'February': 17850, 'March': 18550,
+              'April': 19250, 'May': 19950, 'June': 20650,
+              'July': 21350, 'August': 22050, 'September': 22750,
+              'October': 23450, 'November': 24150, 'December': 24850
+            }
+          }
+        }
+      },
+      2024: {
+        total: 4350000,
+        growth: 6.1,
+        brands: {
+          'Maruti Suzuki': {
+            total: 1970000,
+            months: {
+              'January': 158000, 'February': 163000, 'March': 168000,
+              'April': 173000, 'May': 178000, 'June': 183000,
+              'July': 188000, 'August': 193000, 'September': 198000,
+              'October': 203000, 'November': 208000, 'December': 213000
+            }
+          },
+          'Hyundai': {
+            total: 720000,
+            months: {
+              'January': 58000, 'February': 60000, 'March': 62000,
+              'April': 64000, 'May': 66000, 'June': 68000,
+              'July': 70000, 'August': 72000, 'September': 74000,
+              'October': 76000, 'November': 78000, 'December': 80000
+            }
+          },
+          'Tata Motors': {
+            total: 625000,
+            months: {
+              'January': 50000, 'February': 52000, 'March': 54000,
+              'April': 56000, 'May': 58000, 'June': 60000,
+              'July': 62000, 'August': 64000, 'September': 66000,
+              'October': 68000, 'November': 70000, 'December': 72000
+            }
+          },
+          'Mahindra': {
+            total: 540000,
+            months: {
+              'January': 43000, 'February': 45000, 'March': 47000,
+              'April': 49000, 'May': 51000, 'June': 53000,
+              'July': 55000, 'August': 57000, 'September': 59000,
+              'October': 61000, 'November': 63000, 'December': 65000
+            }
+          },
+          'Honda': {
+            total: 270000,
+            months: {
+              'January': 21500, 'February': 22500, 'March': 23500,
+              'April': 24500, 'May': 25500, 'June': 26500,
+              'July': 27500, 'August': 28500, 'September': 29500,
+              'October': 30500, 'November': 31500, 'December': 32500
+            }
+          },
+          'Toyota': {
+            total: 225000,
+            months: {
+              'January': 18050, 'February': 18850, 'March': 19650,
+              'April': 20450, 'May': 21250, 'June': 22050,
+              'July': 22850, 'August': 23650, 'September': 24450,
+              'October': 25250, 'November': 26050, 'December': 26850
+            }
+          }
+        }
+      }
+    };
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function formatNumber(num) {
+      return num.toLocaleString('en-IN');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      
+      Object.keys(salesData).sort().forEach(year => {
+        const data = salesData[year];
+        
+        // Year row
+        const yearRow = document.createElement('div');
+        yearRow.className = 'table-row year-row';
+        yearRow.dataset.year = year;
+        yearRow.innerHTML = `
+          <div class="year-cell">
+            <span class="expand-icon">▶</span>
+            <span>${year}</span>
+          </div>
+          <div class="total-cell">${formatNumber(data.total)}</div>
+          <div class="sales-cell">${data.growth >= 0 ? '+' : ''}${data.growth.toFixed(1)}%</div>
+        `;
+        
+        // Add click handler
+        yearRow.addEventListener('click', () => toggleYear(year));
+        
+        tbody.appendChild(yearRow);
+        
+        // Brand rows
+        Object.keys(data.brands).forEach(brand => {
+          const brandData = data.brands[brand];
+          
+          // Brand row
+          const brandRow = document.createElement('div');
+          brandRow.className = 'table-row brand-row';
+          brandRow.dataset.year = year;
+          brandRow.dataset.brand = brand;
+          brandRow.innerHTML = `
+            <div class="brand-cell">
+              <span class="expand-icon">▶</span>
+              <span>${brand}</span>
+            </div>
+            <div class="sales-cell">${formatNumber(brandData.total)}</div>
+            <div></div>
+          `;
+          
+          // Add click handler
+          brandRow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleBrand(year, brand);
+          });
+          
+          tbody.appendChild(brandRow);
+          
+          // Month rows for this brand
+          monthNames.forEach(month => {
+            const monthRow = document.createElement('div');
+            monthRow.className = 'table-row month-row';
+            monthRow.dataset.year = year;
+            monthRow.dataset.brand = brand;
+            monthRow.dataset.month = month;
+            monthRow.innerHTML = `
+              <div class="month-cell">${month}</div>
+              <div class="sales-cell">${formatNumber(brandData.months[month])}</div>
+              <div></div>
+            `;
+            tbody.appendChild(monthRow);
+          });
+        });
+      });
+      
+      updateStats();
+    }
+
+    function toggleYear(year) {
+      const yearRow = document.querySelector(`.year-row[data-year="${year}"]`);
+      const brandRows = document.querySelectorAll(`.brand-row[data-year="${year}"]`);
+      
+      const isExpanded = yearRow.classList.contains('expanded');
+      
+      if (isExpanded) {
+        // Collapse year and all brands (and their months)
+        yearRow.classList.remove('expanded');
+        brandRows.forEach(row => {
+          row.classList.remove('year-visible');
+          row.classList.remove('brand-expanded');
+          const brand = row.dataset.brand;
+          const monthRows = document.querySelectorAll(`.month-row[data-year="${year}"][data-brand="${brand}"]`);
+          monthRows.forEach(monthRow => {
+            monthRow.classList.remove('brand-expanded');
+          });
+        });
+      } else {
+        // Expand year (show brands, but don't auto-expand brands)
+        yearRow.classList.add('expanded');
+        brandRows.forEach(row => {
+          row.classList.add('year-visible');
+        });
+      }
+    }
+
+    function toggleBrand(year, brand) {
+      // Check if year is expanded first
+      const yearRow = document.querySelector(`.year-row[data-year="${year}"]`);
+      if (!yearRow || !yearRow.classList.contains('expanded')) {
+        return;
+      }
+      
+      const brandRow = document.querySelector(`.brand-row[data-year="${year}"][data-brand="${brand}"]`);
+      const monthRows = document.querySelectorAll(`.month-row[data-year="${year}"][data-brand="${brand}"]`);
+      
+      const isBrandExpanded = brandRow.classList.contains('brand-expanded');
+      
+      if (isBrandExpanded) {
+        // Collapse months
+        monthRows.forEach(row => {
+          row.classList.remove('brand-expanded');
+        });
+        brandRow.classList.remove('brand-expanded');
+      } else {
+        // Expand months
+        monthRows.forEach(row => {
+          row.classList.add('brand-expanded');
+        });
+        brandRow.classList.add('brand-expanded');
+      }
+    }
+
+    function updateStats() {
+      const years = Object.keys(salesData).map(Number).sort();
+      const totals = years.map(year => salesData[year].total);
+      const growths = years.map(year => salesData[year].growth).filter(g => g !== 0);
+      
+      const totalSales = totals.reduce((a, b) => a + b, 0);
+      const avgGrowth = growths.length > 0 
+        ? (growths.reduce((a, b) => a + b, 0) / growths.length).toFixed(1)
+        : 0;
+      const bestYear = years[totals.indexOf(Math.max(...totals))];
+      
+      document.getElementById('totalSales').textContent = formatNumber(totalSales);
+      document.getElementById('avgGrowth').textContent = avgGrowth + '%';
+      document.getElementById('bestYear').textContent = bestYear;
+    }
+
+    // Initialize table on page load
+    renderTable();
+  </script>
+</body>
+</html>

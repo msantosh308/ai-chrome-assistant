@@ -124,53 +124,21 @@ function onVendorChange() {
     apiKeyInput.value = '';
   }
   
-  // Update model dropdown
-  const modelSelect = document.getElementById('model');
-  const customModelInput = document.getElementById('customModel');
+  // Update model input placeholder and help text
+  const modelInput = document.getElementById('model');
   const modelHelp = document.getElementById('modelHelp');
   
-  modelSelect.innerHTML = '';
-  config.models.forEach(model => {
-    const option = document.createElement('option');
-    option.value = model.value;
-    option.textContent = model.label;
-    modelSelect.appendChild(option);
-  });
+  // Set placeholder with example models for the selected vendor
+  const exampleModels = config.models.slice(0, 3).map(m => m.value).join(', ');
+  modelInput.placeholder = `Enter model name (e.g., ${exampleModels})`;
   
-  // Set default model if current model is not in the list
-  const currentModel = modelSelect.value;
-  const modelExists = config.models.some(m => m.value === currentModel);
-  if (!modelExists) {
-    modelSelect.value = config.defaultModel;
+  // Update help text with vendor-specific guidance
+  modelHelp.textContent = `Enter the model name for ${config.name}. Examples: ${exampleModels}`;
+  
+  // Only set default value if field is empty (user hasn't entered anything)
+  if (!modelInput.value || modelInput.value.trim() === '') {
+    modelInput.value = config.defaultModel || '';
   }
-  
-  // Handle custom model input visibility
-  function toggleCustomModelInput() {
-    if (modelSelect.value === 'custom') {
-      customModelInput.style.display = 'block';
-      customModelInput.required = true;
-      modelHelp.textContent = 'Enter your custom model name';
-      // If there's a stored custom model value, use it
-      chrome.storage.sync.get(['llmSettings'], (result) => {
-        const storedModel = result.llmSettings?.model;
-        if (storedModel && storedModel !== 'custom' && !config.models.some(m => m.value === storedModel)) {
-          customModelInput.value = storedModel;
-        }
-      });
-    } else {
-      customModelInput.style.display = 'none';
-      customModelInput.required = false;
-      customModelInput.value = '';
-      modelHelp.textContent = '';
-    }
-  }
-  
-  // Add change listener to model dropdown
-  modelSelect.removeEventListener('change', toggleCustomModelInput);
-  modelSelect.addEventListener('change', toggleCustomModelInput);
-  
-  // Check initial state
-  toggleCustomModelInput();
 }
 
 function loadSettings() {
@@ -193,38 +161,12 @@ function loadSettings() {
     // Update vendor-specific fields
     onVendorChange();
     
-    // Set model after vendor change (which populates the dropdown)
-    setTimeout(() => {
-      const modelSelect = document.getElementById('model');
-      const customModelInput = document.getElementById('customModel');
-      const storedModel = llmSettings.model || VENDOR_CONFIGS[vendor].defaultModel;
-      
-      // Check if stored model is in the vendor's model list
-      const vendorConfig = VENDOR_CONFIGS[vendor];
-      const modelExists = vendorConfig.models.some(m => m.value === storedModel);
-      
-      if (modelExists) {
-        modelSelect.value = storedModel;
-        customModelInput.style.display = 'none';
-        customModelInput.value = '';
-      } else if (storedModel && storedModel !== 'custom') {
-        // Model not in list, treat as custom
-        modelSelect.value = 'custom';
-        customModelInput.style.display = 'block';
-        customModelInput.value = storedModel;
-      } else {
-        // Use default model
-        modelSelect.value = vendorConfig.defaultModel;
-        customModelInput.style.display = 'none';
-        customModelInput.value = '';
-      }
-      
-      // Trigger custom input toggle to ensure proper state
-      if (modelSelect.value === 'custom') {
-        customModelInput.style.display = 'block';
-        customModelInput.required = true;
-      }
-    }, 100);
+    // Set model value (use stored value or default)
+    const modelInput = document.getElementById('model');
+    const storedModel = llmSettings.model || VENDOR_CONFIGS[vendor].defaultModel;
+    if (storedModel) {
+      modelInput.value = storedModel;
+    }
     
     // Load prompt settings
     document.getElementById('systemPrompt').value = promptSettings.systemPrompt || 
@@ -241,19 +183,13 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  const modelSelect = document.getElementById('model');
-  const customModelInput = document.getElementById('customModel');
+  const modelInput = document.getElementById('model');
+  const modelValue = modelInput.value.trim();
   
-  // Use custom model name if "custom" is selected
-  let modelValue = modelSelect.value;
-  if (modelValue === 'custom') {
-    const customModel = customModelInput.value.trim();
-    if (!customModel) {
-      showStatus('Please enter a custom model name', 'error');
-      customModelInput.focus();
-      return;
-    }
-    modelValue = customModel;
+  if (!modelValue) {
+    showStatus('Please enter a model name', 'error');
+    modelInput.focus();
+    return;
   }
   
   const llmSettings = {

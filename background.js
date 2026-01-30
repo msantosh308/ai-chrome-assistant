@@ -29,22 +29,28 @@ const VENDOR_ENDPOINTS = {
 };
 
 // Normalize model name based on vendor
-// For LiteLLM/OpenAI-compatible endpoints, Claude models need 'anthropic/' prefix
+// Note: We don't automatically add prefixes - users should specify the exact model name
+// their endpoint expects (e.g., "claude-3-sonnet" or "anthropic/claude-3-sonnet")
 function normalizeModelName(model, vendor, endpoint) {
   if (!model) return model;
   
-  // If using LiteLLM or OpenAI-compatible endpoint (not direct Anthropic API)
-  // and model is a Claude model, add anthropic/ prefix
-  if ((vendor === 'litellm' || vendor === 'openai' || vendor === 'custom') && 
-      vendor !== 'claude' && 
-      model.startsWith('claude-') && 
-      !model.startsWith('anthropic/')) {
-    // Check if endpoint is not the direct Anthropic API
-    if (!endpoint.includes('api.anthropic.com')) {
-      return `anthropic/${model}`;
+  // For direct Anthropic API (vendor === 'claude'), use model as-is
+  // For other vendors, also use model as-is - let users specify the exact format
+  // their endpoint expects
+  
+  // Only normalize if vendor is explicitly 'claude' and we're calling Anthropic API directly
+  if (vendor === 'claude' && endpoint.includes('api.anthropic.com')) {
+    // Anthropic API uses model names without prefix
+    // Remove prefix if present
+    if (model.startsWith('anthropic/')) {
+      return model.substring(11); // Remove 'anthropic/' prefix
     }
+    return model;
   }
   
+  // For all other cases (LiteLLM, OpenAI-compatible, custom), use model exactly as user specified
+  // This allows users to specify "claude-3-sonnet" or "anthropic/claude-3-sonnet" 
+  // depending on what their endpoint expects
   return model;
 }
 

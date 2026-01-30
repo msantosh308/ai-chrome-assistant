@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Div-Based Tables Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    h2 {
+      color: #555;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+    
+    .section {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    
+    .description {
+      color: #666;
+      font-style: italic;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f9f9f9;
+      border-left: 4px solid #667eea;
+    }
+    
+    /* Test 1: ARIA Role-based Table */
+    .aria-table {
+      display: block;
+      width: 100%;
+    }
+    
+    .aria-row {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .aria-cell {
+      flex: 1;
+      padding: 12px;
+    }
+    
+    .aria-header {
+      background: #667eea;
+      color: white;
+      font-weight: 600;
+    }
+    
+    /* Test 2: CSS Display Table */
+    .display-table {
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .display-row {
+      display: table-row;
+    }
+    
+    .display-cell {
+      display: table-cell;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .display-header {
+      background: #48bb78;
+      color: white;
+      font-weight: 600;
+    }
+    
+    /* Test 3: CSS Grid */
+    .grid-table {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid #ddd;
+    }
+    
+    .grid-cell {
+      padding: 12px;
+      border-right: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .grid-header {
+      background: #ed8936;
+      color: white;
+      font-weight: 600;
+    }
+    
+    /* Test 4: Flexbox with Class Names */
+    .data-table {
+      width: 100%;
+    }
+    
+    .table-row {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .table-row:first-child {
+      background: #9f7aea;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .table-cell {
+      flex: 1;
+      padding: 12px;
+    }
+    
+    /* Test 5: Grid Pattern (no explicit classes) */
+    .product-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    
+    .product-grid > div {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .product-grid > div:first-child {
+      background: #38b2ac;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .product-grid > div > div {
+      flex: 1;
+      padding: 12px;
+    }
+    
+    /* Test 6: DataGrid Pattern */
+    .datagrid {
+      width: 100%;
+    }
+    
+    .datagrid-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 100px 120px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .datagrid-row.header {
+      background: #e53e3e;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .datagrid-cell {
+      padding: 12px;
+    }
+    
+    /* Test 7: Nested Structure */
+    .nested-table {
+      width: 100%;
+    }
+    
+    .nested-row-group {
+      border-bottom: 2px solid #ccc;
+    }
+    
+    .nested-row {
+      display: flex;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .nested-row.header-row {
+      background: #805ad5;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .nested-cell {
+      flex: 1;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Div-Based Tables Test Page</h1>
+  <p style="text-align: center; color: #666; margin-bottom: 30px;">
+    This page contains various div-based table structures to test the extension's extraction capabilities.
+  </p>
+
+  <!-- Test 1: ARIA Role-based Table -->
+  <div class="section">
+    <h2>Test 1: ARIA Role-based Table</h2>
+    <div class="description">
+      Uses ARIA roles: role="table", role="row", role="columnheader", role="cell"
+    </div>
+    <div class="aria-table" role="table">
+      <div class="aria-row" role="row">
+        <div class="aria-cell aria-header" role="columnheader">Product</div>
+        <div class="aria-cell aria-header" role="columnheader">Category</div>
+        <div class="aria-cell aria-header" role="columnheader">Price</div>
+        <div class="aria-cell aria-header" role="columnheader">Stock</div>
+      </div>
+      <div class="aria-row" role="row">
+        <div class="aria-cell" role="cell">Laptop Pro</div>
+        <div class="aria-cell" role="cell">Electronics</div>
+        <div class="aria-cell" role="cell">$1,299</div>
+        <div class="aria-cell" role="cell">45</div>
+      </div>
+      <div class="aria-row" role="row">
+        <div class="aria-cell" role="cell">Wireless Mouse</div>
+        <div class="aria-cell" role="cell">Accessories</div>
+        <div class="aria-cell" role="cell">$29</div>
+        <div class="aria-cell" role="cell">120</div>
+      </div>
+      <div class="aria-row" role="row">
+        <div class="aria-cell" role="cell">USB-C Cable</div>
+        <div class="aria-cell" role="cell">Accessories</div>
+        <div class="aria-cell" role="cell">$15</div>
+        <div class="aria-cell" role="cell">200</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 2: CSS Display Table -->
+  <div class="section">
+    <h2>Test 2: CSS Display Table Properties</h2>
+    <div class="description">
+      Uses CSS: display: table, display: table-row, display: table-cell
+    </div>
+    <div class="display-table">
+      <div class="display-row">
+        <div class="display-cell display-header">Employee</div>
+        <div class="display-cell display-header">Department</div>
+        <div class="display-cell display-header">Salary</div>
+        <div class="display-cell display-header">Experience</div>
+      </div>
+      <div class="display-row">
+        <div class="display-cell">John Smith</div>
+        <div class="display-cell">Engineering</div>
+        <div class="display-cell">$95,000</div>
+        <div class="display-cell">5 years</div>
+      </div>
+      <div class="display-row">
+        <div class="display-cell">Sarah Johnson</div>
+        <div class="display-cell">Marketing</div>
+        <div class="display-cell">$75,000</div>
+        <div class="display-cell">3 years</div>
+      </div>
+      <div class="display-row">
+        <div class="display-cell">Mike Davis</div>
+        <div class="display-cell">Sales</div>
+        <div class="display-cell">$85,000</div>
+        <div class="display-cell">7 years</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 3: CSS Grid -->
+  <div class="section">
+    <h2>Test 3: CSS Grid Layout</h2>
+    <div class="description">
+      Uses CSS Grid: display: grid with grid-template-columns
+    </div>
+    <div class="grid-table">
+      <div class="grid-cell grid-header">City</div>
+      <div class="grid-cell grid-header">Country</div>
+      <div class="grid-cell grid-header">Population</div>
+      <div class="grid-cell grid-header">Area (km²)</div>
+      <div class="grid-cell">Tokyo</div>
+      <div class="grid-cell">Japan</div>
+      <div class="grid-cell">37,400,000</div>
+      <div class="grid-cell">13,452</div>
+      <div class="grid-cell">New York</div>
+      <div class="grid-cell">USA</div>
+      <div class="grid-cell">20,140,000</div>
+      <div class="grid-cell">1,214</div>
+      <div class="grid-cell">London</div>
+      <div class="grid-cell">UK</div>
+      <div class="grid-cell">9,000,000</div>
+      <div class="grid-cell">1,572</div>
+    </div>
+  </div>
+
+  <!-- Test 4: Flexbox with Class Names -->
+  <div class="section">
+    <h2>Test 4: Flexbox with Table Class Names</h2>
+    <div class="description">
+      Uses class names: data-table, table-row, table-cell
+    </div>
+    <div class="data-table">
+      <div class="table-row">
+        <div class="table-cell">Month</div>
+        <div class="table-cell">Revenue</div>
+        <div class="table-cell">Expenses</div>
+        <div class="table-cell">Profit</div>
+      </div>
+      <div class="table-row">
+        <div class="table-cell">January</div>
+        <div class="table-cell">$45,000</div>
+        <div class="table-cell">$30,000</div>
+        <div class="table-cell">$15,000</div>
+      </div>
+      <div class="table-row">
+        <div class="table-cell">February</div>
+        <div class="table-cell">$52,000</div>
+        <div class="table-cell">$32,000</div>
+        <div class="table-cell">$20,000</div>
+      </div>
+      <div class="table-row">
+        <div class="table-cell">March</div>
+        <div class="table-cell">$48,000</div>
+        <div class="table-cell">$28,000</div>
+        <div class="table-cell">$20,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 5: Grid Pattern Detection -->
+  <div class="section">
+    <h2>Test 5: Grid Pattern (No Explicit Table Classes)</h2>
+    <div class="description">
+      Detected by consistent column structure across rows
+    </div>
+    <div class="product-grid">
+      <div>
+        <div>Item</div>
+        <div>SKU</div>
+        <div>Quantity</div>
+        <div>Status</div>
+      </div>
+      <div>
+        <div>Widget A</div>
+        <div>WGT-001</div>
+        <div>150</div>
+        <div>In Stock</div>
+      </div>
+      <div>
+        <div>Widget B</div>
+        <div>WGT-002</div>
+        <div>89</div>
+        <div>Low Stock</div>
+      </div>
+      <div>
+        <div>Widget C</div>
+        <div>WGT-003</div>
+        <div>0</div>
+        <div>Out of Stock</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 6: DataGrid Pattern -->
+  <div class="section">
+    <h2>Test 6: DataGrid Pattern</h2>
+    <div class="description">
+      Uses class names: datagrid, datagrid-row, datagrid-cell
+    </div>
+    <div class="datagrid">
+      <div class="datagrid-row header">
+        <div class="datagrid-cell">Order ID</div>
+        <div class="datagrid-cell">Customer</div>
+        <div class="datagrid-cell">Amount</div>
+        <div class="datagrid-cell">Date</div>
+      </div>
+      <div class="datagrid-row">
+        <div class="datagrid-cell">ORD-1001</div>
+        <div class="datagrid-cell">Acme Corp</div>
+        <div class="datagrid-cell">$2,450</div>
+        <div class="datagrid-cell">2024-01-15</div>
+      </div>
+      <div class="datagrid-row">
+        <div class="datagrid-cell">ORD-1002</div>
+        <div class="datagrid-cell">Tech Solutions</div>
+        <div class="datagrid-cell">$1,890</div>
+        <div class="datagrid-cell">2024-01-16</div>
+      </div>
+      <div class="datagrid-row">
+        <div class="datagrid-cell">ORD-1003</div>
+        <div class="datagrid-cell">Global Inc</div>
+        <div class="datagrid-cell">$3,200</div>
+        <div class="datagrid-cell">2024-01-17</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 7: Nested Structure -->
+  <div class="section">
+    <h2>Test 7: Nested Table Structure</h2>
+    <div class="description">
+      Complex nested div structure with row groups
+    </div>
+    <div class="nested-table">
+      <div class="nested-row-group">
+        <div class="nested-row header-row">
+          <div class="nested-cell">Project</div>
+          <div class="nested-cell">Team</div>
+          <div class="nested-cell">Budget</div>
+          <div class="nested-cell">Timeline</div>
+        </div>
+        <div class="nested-row">
+          <div class="nested-cell">Website Redesign</div>
+          <div class="nested-cell">Design Team</div>
+          <div class="nested-cell">$50,000</div>
+          <div class="nested-cell">3 months</div>
+        </div>
+        <div class="nested-row">
+          <div class="nested-cell">Mobile App</div>
+          <div class="nested-cell">Dev Team</div>
+          <div class="nested-cell">$120,000</div>
+          <div class="nested-cell">6 months</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test 8: Mixed Content -->
+  <div class="section">
+    <h2>Test 8: Mixed Content with Regular Table</h2>
+    <div class="description">
+      Contains both div-based table and regular HTML table for comparison
+    </div>
+    
+    <h3 style="margin-top: 20px;">Div-based Table:</h3>
+    <div class="data-table" style="margin-bottom: 30px;">
+      <div class="table-row">
+        <div class="table-cell">Type</div>
+        <div class="table-cell">Count</div>
+      </div>
+      <div class="table-row">
+        <div class="table-cell">Div Tables</div>
+        <div class="table-cell">7</div>
+      </div>
+      <div class="table-row">
+        <div class="table-cell">Regular Tables</div>
+        <div class="table-cell">1</div>
+      </div>
+    </div>
+    
+    <h3>Regular HTML Table:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th style="padding: 12px; background: #667eea; color: white;">Type</th>
+        <th style="padding: 12px; background: #667eea; color: white;">Count</th>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Div Tables</td>
+        <td style="padding: 12px; border-bottom: 1px solid #ddd;">7</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #ddd;">Regular Tables</td>
+        <td style="padding: 12px; border-bottom: 1px solid #ddd;">1</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="text-align: center; margin-top: 40px; padding: 20px; background: #e6f7ff; border-radius: 8px;">
+    <p style="color: #666; margin: 0;">
+      <strong>Test Instructions:</strong> Open the AI Chat extension and ask questions like:<br>
+      "What tables are on this page?", "Extract the product data", "Create a chart from the revenue data"
+    </p>
+  </div>
+
+</body>
+</html>
