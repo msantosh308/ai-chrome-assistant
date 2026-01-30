@@ -23,11 +23,33 @@ cp settings.js "$TEMP_DIR/"
 # Copy icons directory
 cp -r icons "$TEMP_DIR/"
 
-# Create ZIP file
+# Create ZIP file - ensure files are at root level
 ZIP_NAME="ai-chrome-extension-v1.0.0.zip"
 cd "$TEMP_DIR"
-zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*"
+# Zip from within the directory so files are at root, not in a subdirectory
+zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*" "*.zip"
 cd ..
+
+# Verify manifest.json is at root by extracting and checking
+echo "Verifying ZIP structure..."
+TEST_EXTRACT="zip-verify-$$"
+mkdir -p "$TEST_EXTRACT"
+unzip -q "$ZIP_NAME" -d "$TEST_EXTRACT"
+
+if [ -f "$TEST_EXTRACT/manifest.json" ]; then
+  echo "✅ manifest.json verified at root level"
+  echo "✅ All files are at correct location"
+  rm -rf "$TEST_EXTRACT"
+else
+  echo "❌ ERROR: manifest.json is not at root level!"
+  echo "ZIP contents:"
+  unzip -l "$ZIP_NAME"
+  echo ""
+  echo "Extracted structure:"
+  find "$TEST_EXTRACT" -type f | head -20
+  rm -rf "$TEST_EXTRACT"
+  exit 1
+fi
 
 # Clean up
 rm -rf "$TEMP_DIR"

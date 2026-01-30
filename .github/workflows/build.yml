@@ -53,42 +53,142 @@ jobs:
           # Copy icons directory
           cp -r icons "$TEMP_DIR/"
           
-          # Create ZIP file
+          # Create ZIP file - CRITICAL: files must be at root, not in subdirectory
           ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
+          
+          # Method: Change to temp directory and zip its contents (not the directory itself)
+          # This ensures files are at ZIP root
           cd "$TEMP_DIR"
-          zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*"
+          # Zip all files in current directory to parent directory
+          # The -r flag includes subdirectories (like icons/)
+          # The . means current directory contents
+          zip -r "../$ZIP_NAME" . -x "*.DS_Store" "*.git*" "*.zip" "*.sh"
           cd ..
+          
+          echo ""
+          echo "=== Verifying ZIP Structure ==="
+          echo "ZIP file: $ZIP_NAME"
+          echo ""
+          echo "ZIP contents listing:"
+          unzip -l "$ZIP_NAME" | head -30
+          echo ""
+          
+          # Extract ZIP to verify structure
+          TEST_EXTRACT="zip-verify-$$"
+          mkdir -p "$TEST_EXTRACT"
+          unzip -q "$ZIP_NAME" -d "$TEST_EXTRACT"
+          
+          echo "Extracted structure:"
+          ls -la "$TEST_EXTRACT/"
+          echo ""
+          
+          # CRITICAL CHECK: manifest.json must be directly in extracted root
+          if [ -f "$TEST_EXTRACT/manifest.json" ]; then
+            echo "✅ SUCCESS: manifest.json is at root level"
+          else
+            echo "❌ ERROR: manifest.json is NOT at root level!"
+            echo "Looking for manifest.json:"
+            find "$TEST_EXTRACT" -name "manifest.json" -type f
+            echo ""
+            echo "Extracted directory structure:"
+            find "$TEST_EXTRACT" -type f | head -20
+            rm -rf "$TEST_EXTRACT"
+            rm -rf "$TEMP_DIR"
+            exit 1
+          fi
+          
+          # Verify all required files are at root
+          REQUIRED_FILES=("manifest.json" "background.js" "content.js" "content.css" "popup.html" "popup.js" "settings.html" "settings.js")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$TEST_EXTRACT/$file" ]; then
+              echo "❌ ERROR: $file is not at root level!"
+              rm -rf "$TEST_EXTRACT"
+              rm -rf "$TEMP_DIR"
+              exit 1
+            fi
+          done
+          
+          # Verify icons directory
+          if [ ! -d "$TEST_EXTRACT/icons" ]; then
+            echo "❌ ERROR: icons directory is not at root level!"
+            rm -rf "$TEST_EXTRACT"
+            rm -rf "$TEMP_DIR"
+            exit 1
+          fi
+          
+          echo "✅ All files verified at root level"
+          rm -rf "$TEST_EXTRACT"
           
           # Clean up temp directory
           rm -rf "$TEMP_DIR"
           
-          echo "✅ Package created: $ZIP_NAME"
+          echo ""
+          echo "✅ Package created successfully: $ZIP_NAME"
+          echo "📦 Ready for Chrome Web Store upload!"
           echo "package_name=$ZIP_NAME" >> $GITHUB_OUTPUT
       
       - name: Verify package contents
         run: |
           ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
           echo "Verifying package contents..."
-          unzip -l "$ZIP_NAME" | head -20
+          echo ""
+          echo "=== ZIP File Structure ==="
+          unzip -l "$ZIP_NAME"
+          echo ""
           
-          # Check for required files
+          # Extract and verify structure
+          TEST_DIR="zip-test-$$"
+          mkdir -p "$TEST_DIR"
+          unzip -q "$ZIP_NAME" -d "$TEST_DIR"
+          
+          echo "=== Extracted Structure ==="
+          ls -la "$TEST_DIR/"
+          echo ""
+          
+          # Check if manifest.json is directly in the root (not in a subdirectory)
+          if [ -f "$TEST_DIR/manifest.json" ]; then
+            echo "✅ manifest.json is at root level"
+          else
+            echo "❌ ERROR: manifest.json is NOT at root level!"
+            echo "Files found:"
+            find "$TEST_DIR" -type f -name "manifest.json"
+            rm -rf "$TEST_DIR"
+            exit 1
+          fi
+          
+          # Check for required files at root
           REQUIRED_FILES=("manifest.json" "background.js" "content.js" "content.css" "popup.html" "popup.js" "settings.html" "settings.js")
+          MISSING=()
           for file in "${REQUIRED_FILES[@]}"; do
-            if unzip -l "$ZIP_NAME" | grep -q "$file"; then
-              echo "✅ Found: $file"
+            if [ -f "$TEST_DIR/$file" ]; then
+              echo "✅ Found at root: $file"
             else
-              echo "❌ Missing: $file"
-              exit 1
+              echo "❌ Missing at root: $file"
+              MISSING+=("$file")
             fi
           done
           
-          # Check for icons
-          if unzip -l "$ZIP_NAME" | grep -q "icons/"; then
-            echo "✅ Found: icons directory"
-          else
-            echo "❌ Missing: icons directory"
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "❌ Missing files: ${MISSING[*]}"
+            rm -rf "$TEST_DIR"
             exit 1
           fi
+          
+          # Check for icons directory
+          if [ -d "$TEST_DIR/icons" ]; then
+            echo "✅ Found: icons directory"
+            ls -la "$TEST_DIR/icons/"
+          else
+            echo "❌ Missing: icons directory"
+            rm -rf "$TEST_DIR"
+            exit 1
+          fi
+          
+          # Clean up test directory
+          rm -rf "$TEST_DIR"
+          
+          echo ""
+          echo "✅ All files verified at correct locations!"
       
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
