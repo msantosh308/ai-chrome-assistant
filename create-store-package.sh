@@ -33,15 +33,16 @@ ZIP_NAME="ai-chrome-extension-v1.0.0.zip"
 rm -f "$ZIP_NAME"
 
 # Use Python to create ZIP with explicit control over paths
-# This guarantees all files are at root level
+# CRITICAL: All files must be at ZIP root, not in a subdirectory
 echo "Creating ZIP file with Python (explicit path control)..."
 python3 << 'PYTHON_SCRIPT'
 import zipfile
 import os
 from pathlib import Path
+import sys
 
-temp_dir = Path("chrome-store-package")
-zip_path = Path("ai-chrome-extension-v1.0.0.zip")
+temp_dir = Path("chrome-store-package").resolve()
+zip_path = Path("ai-chrome-extension-v1.0.0.zip").resolve()
 
 # Exclude patterns
 exclude_patterns = ['.DS_Store', '.git', '.zip', '.sh']
@@ -50,6 +51,10 @@ def should_exclude(file_path):
     """Check if file should be excluded"""
     name = file_path.name
     return any(name.endswith(pattern) or pattern in name for pattern in exclude_patterns)
+
+print(f"Creating ZIP from: {temp_dir}")
+print(f"ZIP file: {zip_path}")
+print("")
 
 # Create ZIP file
 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -63,17 +68,21 @@ with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 continue
             
             file_path = Path(root) / file
-            # Calculate archive path: remove temp_dir prefix to put files at root
+            # CRITICAL: Use relative_to to remove temp_dir prefix
+            # This ensures files are at ZIP root, not in subdirectory
             archive_path = file_path.relative_to(temp_dir)
-            # Convert to string with forward slashes (ZIP standard)
-            # Use as_posix() which handles path conversion correctly
             archive_path_str = archive_path.as_posix()
             
-            print(f"Adding: {archive_path_str}")
+            # Verify path does not start with temp_dir name
+            if archive_path_str.startswith("chrome-store-package/"):
+                print(f"ERROR: Path still contains temp dir: {archive_path_str}")
+                sys.exit(1)
+            
+            print(f"  Adding: {archive_path_str}")
             zipf.write(file_path, archive_path_str)
 
-print(f"\n✅ ZIP created: {zip_path}")
-print(f"✅ All files are at root level")
+print(f"\n✅ ZIP created successfully: {zip_path}")
+print("✅ All files are at root level (no subdirectory)")
 PYTHON_SCRIPT
 
 # Show ZIP contents for debugging
@@ -82,26 +91,76 @@ echo "=== ZIP File Contents ==="
 unzip -l "$ZIP_NAME" | head -25
 echo ""
 
-# Verify manifest.json is at root by extracting and checking
-echo "Verifying ZIP structure..."
+# CRITICAL VERIFICATION: Extract ZIP and verify structure
+echo ""
+echo "=== Verifying ZIP Structure ==="
 TEST_EXTRACT="zip-verify-$$"
 mkdir -p "$TEST_EXTRACT"
 unzip -q "$ZIP_NAME" -d "$TEST_EXTRACT"
 
+echo "Extracted ZIP structure:"
+find "$TEST_EXTRACT" -type f | sort
+echo ""
+
+# Verify manifest.json is directly at root (not in subdirectory)
 if [ -f "$TEST_EXTRACT/manifest.json" ]; then
-  echo "✅ manifest.json verified at root level"
-  echo "✅ All files are at correct location"
-  rm -rf "$TEST_EXTRACT"
+  echo "✅ manifest.json is at root level"
 else
-  echo "❌ ERROR: manifest.json is not at root level!"
-  echo "ZIP contents:"
-  unzip -l "$ZIP_NAME"
-  echo ""
-  echo "Extracted structure:"
+  echo "❌ ERROR: manifest.json is NOT at root level!"
+  echo "Looking for manifest.json:"
+  find "$TEST_EXTRACT" -name "manifest.json" -type f
+  rm -rf "$TEST_EXTRACT"
+  exit 1
+fi
+
+# Verify all required files are at root
+REQUIRED_FILES=("manifest.json" "background.js" "content.js" "content.css" "popup.html" "popup.js" "settings.html" "settings.js")
+MISSING=()
+for file in "${REQUIRED_FILES[@]}"; do
+  if [ -f "$TEST_EXTRACT/$file" ]; then
+    echo "✅ $file is at root level"
+  else
+    echo "❌ ERROR: $file is NOT at root level!"
+    MISSING+=("$file")
+  fi
+done
+
+if [ ${#MISSING[@]} -gt 0 ]; then
+  echo "❌ Missing files at root: ${MISSING[*]}"
+  echo "Files found:"
   find "$TEST_EXTRACT" -type f | head -20
   rm -rf "$TEST_EXTRACT"
   exit 1
 fi
+
+# Verify directories are at root
+if [ -d "$TEST_EXTRACT/icons" ]; then
+  echo "✅ icons/ directory is at root level"
+else
+  echo "❌ ERROR: icons/ directory is NOT at root level!"
+  rm -rf "$TEST_EXTRACT"
+  exit 1
+fi
+
+if [ -d "$TEST_EXTRACT/libs" ]; then
+  echo "✅ libs/ directory is at root level"
+else
+  echo "❌ ERROR: libs/ directory is NOT at root level!"
+  rm -rf "$TEST_EXTRACT"
+  exit 1
+fi
+
+# CRITICAL: Verify NO subdirectory named after temp_dir exists
+if [ -d "$TEST_EXTRACT/$TEMP_DIR" ]; then
+  echo "❌ ERROR: ZIP contains nested directory '$TEMP_DIR'!"
+  echo "This means files are NOT at root level."
+  rm -rf "$TEST_EXTRACT"
+  exit 1
+fi
+
+rm -rf "$TEST_EXTRACT"
+echo ""
+echo "✅ All files verified at root level - ZIP structure is correct!"
 
 # Clean up
 rm -rf "$TEMP_DIR"
