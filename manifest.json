@@ -38,7 +38,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["content.js", "content.css"],
+      "resources": [
+        "content.js",
+        "content.css",
+        "libs/vega.min.js",
+        "libs/vega-lite.min.js",
+        "libs/vega-embed.min.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

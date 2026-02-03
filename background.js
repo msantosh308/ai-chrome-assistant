@@ -110,9 +110,8 @@ chrome.runtime.onInstalled.addListener(() => {
       userPromptTemplate: 'User question: {question}\n\nPage context:\n{context}'
     },
     vegaSettings: {
-      vegaUrl: 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js',
-      vegaLiteUrl: 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js',
-      vegaEmbedUrl: 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js'
+      // Libraries are now bundled locally in the extension
+      // CDN URLs are no longer used (Manifest V3 requirement)
     }
   });
 });
@@ -539,24 +538,16 @@ async function generateSuggestions(data) {
 }
 
 async function injectVegaLiteIntoPage(tabId, containerId, spec) {
-  // Get Vega settings
-  const settings = await chrome.storage.sync.get(['vegaSettings']);
-  const vegaSettings = settings.vegaSettings || {};
+  // Load libraries from extension bundle (not from remote CDN - Manifest V3 requirement)
+  // All libraries are bundled locally in the extension package
+  const vegaUrl = chrome.runtime.getURL('libs/vega.min.js');
+  const vegaLiteUrl = chrome.runtime.getURL('libs/vega-lite.min.js');
+  const vegaEmbedUrl = chrome.runtime.getURL('libs/vega-embed.min.js');
   
-  // Primary CDN (jsdelivr)
-  const primaryVegaUrl = vegaSettings.vegaUrl || 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js';
-  const primaryVegaLiteUrl = vegaSettings.vegaLiteUrl || 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js';
-  const primaryVegaEmbedUrl = vegaSettings.vegaEmbedUrl || 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js';
-  
-  // Fallback CDNs (unpkg - often works better with VPNs)
-  const fallbackVegaUrl = 'https://unpkg.com/vega@5/build/vega.min.js';
-  const fallbackVegaLiteUrl = 'https://unpkg.com/vega-lite@5/build/vega-lite.min.js';
-  const fallbackVegaEmbedUrl = 'https://unpkg.com/vega-embed@6/build/vega-embed.min.js';
-  
-  // Use primary URLs, but will fallback if they fail
-  const vegaUrl = primaryVegaUrl;
-  const vegaLiteUrl = primaryVegaLiteUrl;
-  const vegaEmbedUrl = primaryVegaEmbedUrl;
+  // No fallback needed - libraries are bundled locally
+  const fallbackVegaUrl = vegaUrl;
+  const fallbackVegaLiteUrl = vegaLiteUrl;
+  const fallbackVegaEmbedUrl = vegaEmbedUrl;
   
   // Inject a script into the page context that loads Vega-Lite and renders the chart
   // Content scripts share the page DOM, so the container should be accessible
@@ -666,7 +657,7 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
             
             const script = document.createElement('script');
             script.src = src;
-            script.crossOrigin = 'anonymous';
+            // No crossOrigin needed for extension URLs (chrome-extension://)
             script.async = false; // Load synchronously to maintain order
             
             const timeoutId = setTimeout(function() {
@@ -693,12 +684,8 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
               if (script.parentNode) {
                 script.parentNode.removeChild(script);
               }
-              const errorMsg = 'Failed to load ' + src + '. This could be due to:\n' +
-                '1. Network connectivity issues\n' +
-                '2. Content Security Policy (CSP) restrictions\n' +
-                '3. CORS restrictions\n' +
-                '4. CDN server is down\n\n' +
-                'Please check your internet connection and browser console (F12) for details.';
+              const errorMsg = 'Failed to load bundled library ' + src + '. This is unexpected as libraries are bundled locally.\n' +
+                'Please check the browser console (F12) for details or try reloading the extension.';
               reject(new Error(errorMsg));
             };
             
@@ -713,11 +700,12 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
         }
         
         function loadScriptWithFallback(primaryUrl, fallbackUrl, timeout, libraryName) {
+          // Libraries are bundled locally, but keep fallback for robustness
           return loadScript(primaryUrl, timeout)
             .catch(function(error) {
-              console.warn('Failed to load ' + libraryName + ' from primary CDN (' + primaryUrl + '), trying fallback...');
+              console.warn('Failed to load ' + libraryName + ' from primary source (' + primaryUrl + '), trying fallback...');
               console.warn('Error:', error.message);
-              // Try fallback CDN
+              // Try fallback (should be same URL, but kept for compatibility)
               return loadScript(fallbackUrl, timeout);
             });
         }
@@ -810,30 +798,24 @@ async function injectVegaLiteIntoPage(tabId, containerId, spec) {
               if (error.message.includes('Timeout')) {
                 errorDetails = 'The chart library took too long to load. This might be due to slow internet connection or the CDN being unavailable.';
               } else if (error.message.includes('Failed to load')) {
-                errorDetails = 'Unable to load the chart library from the CDN. Possible causes:\n' +
-                  '1. VPN blocking or interfering with CDN requests\n' +
-                  '2. Network connectivity issues\n' +
-                  '3. Content Security Policy (CSP) restrictions on this page\n' +
-                  '4. CDN server is down or unreachable\n\n' +
-                  'You can try:\n' +
-                  '- Disconnect VPN temporarily to test\n' +
-                  '- Check your internet connection\n' +
-                  '- Try refreshing the page\n' +
+                errorDetails = 'Unable to load the bundled chart library. This is unexpected as libraries are included in the extension.\n\n' +
+                  'Possible causes:\n' +
+                  '1. Extension files may be corrupted\n' +
+                  '2. Browser security restrictions\n' +
+                  '3. Content Security Policy (CSP) restrictions on this page\n\n' +
+                  'Solutions:\n' +
                   '- Check browser console (F12) for detailed errors\n' +
-                  '- Update Vega library URLs in extension settings to use alternative CDN (unpkg.com)';
+                  '- Try reloading the extension (chrome://extensions)\n' +
+                  '- Reinstall the extension if the issue persists';
               }
               
               container.innerHTML = '<div style="color: red; padding: 15px; border: 1px solid red; border-radius: 4px; background: #fff5f5;">' +
                 '<strong style="font-size: 16px;">Error Loading Chart Library</strong><br><br>' +
                 '<div style="white-space: pre-line; line-height: 1.6;">' + errorDetails + '</div><br>' +
-                '<small style="color: #666;">Primary CDN URLs:<br>' +
+                '<small style="color: #666;">Library URLs (bundled locally):<br>' +
                 'Vega: ' + vegaUrl + '<br>' +
                 'Vega-Lite: ' + vegaLiteUrl + '<br>' +
-                'Vega-Embed: ' + vegaEmbedUrl + '<br><br>' +
-                'Fallback CDN URLs (if primary fails):<br>' +
-                'Vega: ' + fallbackVegaUrl + '<br>' +
-                'Vega-Lite: ' + fallbackVegaLiteUrl + '<br>' +
-                'Vega-Embed: ' + fallbackVegaEmbedUrl + '</small>' +
+                'Vega-Embed: ' + vegaEmbedUrl + '</small>' +
                 '</div>';
               
               // Try to send error back to content script

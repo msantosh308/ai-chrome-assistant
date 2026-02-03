@@ -175,10 +175,14 @@ function loadSettings() {
     document.getElementById('userPromptTemplate').value = promptSettings.userPromptTemplate || 
       'User question: {question}\n\nPage context:\n{context}';
     
-    // Load Vega settings
-    document.getElementById('vegaUrl').value = vegaSettings.vegaUrl || 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js';
-    document.getElementById('vegaLiteUrl').value = vegaSettings.vegaLiteUrl || 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js';
-    document.getElementById('vegaEmbedUrl').value = vegaSettings.vegaEmbedUrl || 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js';
+    // Load Vega settings (libraries are now bundled locally, no CDN URLs needed)
+    // Keep for backward compatibility but don't set CDN URLs
+    const vegaUrlInput = document.getElementById('vegaUrl');
+    const vegaLiteUrlInput = document.getElementById('vegaLiteUrl');
+    const vegaEmbedUrlInput = document.getElementById('vegaEmbedUrl');
+    if (vegaUrlInput) vegaUrlInput.value = '';
+    if (vegaLiteUrlInput) vegaLiteUrlInput.value = '';
+    if (vegaEmbedUrlInput) vegaEmbedUrlInput.value = '';
   });
 }
 
@@ -206,11 +210,8 @@ function saveSettings() {
     userPromptTemplate: document.getElementById('userPromptTemplate').value.trim()
   };
   
-  const vegaSettings = {
-    vegaUrl: document.getElementById('vegaUrl').value.trim(),
-    vegaLiteUrl: document.getElementById('vegaLiteUrl').value.trim(),
-    vegaEmbedUrl: document.getElementById('vegaEmbedUrl').value.trim()
-  };
+  // Vega libraries are now bundled locally - no CDN URLs needed
+  const vegaSettings = {};
   
   // Validate
   if (!llmSettings.apiEndpoint) {
@@ -220,12 +221,6 @@ function saveSettings() {
   
   if (!llmSettings.apiKey) {
     showStatus('Please enter an API key', 'error');
-    return;
-  }
-  
-  // Validate Vega URLs
-  if (!vegaSettings.vegaUrl || !vegaSettings.vegaLiteUrl || !vegaSettings.vegaEmbedUrl) {
-    showStatus('Please enter all Vega-Lite library URLs', 'error');
     return;
   }
   
@@ -260,9 +255,8 @@ function saveSettings() {
         userPromptTemplate: 'User question: {question}\n\nPage context:\n{context}'
       },
       vegaSettings: {
-        vegaUrl: 'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js',
-        vegaLiteUrl: 'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js',
-        vegaEmbedUrl: 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js'
+        // Libraries are now bundled locally in the extension
+        // CDN URLs are no longer used (Manifest V3 requirement)
       }
     }, () => {
       loadSettings();

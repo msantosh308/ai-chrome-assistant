@@ -58,6 +58,9 @@ jobs:
           # Copy icons directory
           cp -r icons "$TEMP_DIR/"
           
+          # Copy Vega-Lite libraries (bundled locally for Manifest V3 compliance)
+          cp -r libs "$TEMP_DIR/"
+          
           # Create ZIP file - CRITICAL: files must be at root, not in subdirectory
           ZIP_NAME="ai-chrome-extension-v${{ steps.get_version.outputs.version }}.zip"
           
@@ -266,6 +269,16 @@ jobs:
             ls -la "$TEST_DIR/icons/"
           else
             echo "❌ Missing: icons directory"
+            rm -rf "$TEST_DIR"
+            exit 1
+          fi
+          
+          # Check for libs directory (Vega-Lite libraries)
+          if [ -d "$TEST_DIR/libs" ]; then
+            echo "✅ Found: libs directory"
+            ls -la "$TEST_DIR/libs/"
+          else
+            echo "❌ Missing: libs directory (Vega-Lite libraries)"
             rm -rf "$TEST_DIR"
             exit 1
           fi

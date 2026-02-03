@@ -1313,7 +1313,7 @@ function renderVegaLite(container, spec) {
             '<strong>Error:</strong> Chart failed to load after 35 seconds.<br><br>' +
             '<div style="white-space: pre-line; font-size: 13px; line-height: 1.6;">' +
             '<strong>Possible causes:</strong><br>' +
-            '1. VPN blocking CDN requests (most likely)<br>' +
+            '1. Extension library files may be corrupted<br>' +
             '2. Network connectivity issues<br>' +
             '3. Content Security Policy restrictions<br>' +
             '4. Library loading timeout<br><br>' +
@@ -1321,8 +1321,8 @@ function renderVegaLite(container, spec) {
             '• Check browser console (F12) for detailed errors<br>' +
             '• Try disconnecting VPN temporarily<br>' +
             '• Try refreshing the page<br>' +
-            '• Update Vega library URLs in extension settings to use unpkg.com CDN<br>' +
-            '• Check if CDN URLs are accessible in your network' +
+            '• Try reloading the extension (chrome://extensions)<br>' +
+            '• Reinstall the extension if the issue persists' +
             '</div>' +
             '</div>';
         }

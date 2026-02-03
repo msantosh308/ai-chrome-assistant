@@ -23,6 +23,9 @@ cp settings.js "$TEMP_DIR/"
 # Copy icons directory
 cp -r icons "$TEMP_DIR/"
 
+# Copy Vega-Lite libraries (bundled locally for Manifest V3 compliance)
+cp -r libs "$TEMP_DIR/"
+
 # Create ZIP file - CRITICAL: files must be at root, not in subdirectory
 ZIP_NAME="ai-chrome-extension-v1.0.0.zip"
 

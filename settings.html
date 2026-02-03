@@ -231,26 +231,17 @@
       </div>
     </div>
     
-    <div class="section">
+    <div class="section" style="display: none;">
       <h2>Vega-Lite Chart Library URLs</h2>
-      
-      <div class="form-group">
-        <label for="vegaUrl">Vega Library URL</label>
-        <input type="text" id="vegaUrl" placeholder="https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js">
-        <div class="help-text">CDN URL for the Vega library</div>
+      <div class="help-text" style="background-color: #e8f0fe; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+        <strong>Note:</strong> Vega-Lite libraries are now bundled locally in the extension to comply with Chrome Web Store Manifest V3 requirements. 
+        CDN URLs are no longer used or configurable.
       </div>
       
-      <div class="form-group">
-        <label for="vegaLiteUrl">Vega-Lite Library URL</label>
-        <input type="text" id="vegaLiteUrl" placeholder="https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js">
-        <div class="help-text">CDN URL for the Vega-Lite library</div>
-      </div>
-      
-      <div class="form-group">
-        <label for="vegaEmbedUrl">Vega-Embed Library URL</label>
-        <input type="text" id="vegaEmbedUrl" placeholder="https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js">
-        <div class="help-text">CDN URL for the Vega-Embed library</div>
-      </div>
+      <!-- Hidden inputs for backward compatibility -->
+      <input type="hidden" id="vegaUrl">
+      <input type="hidden" id="vegaLiteUrl">
+      <input type="hidden" id="vegaEmbedUrl">
     </div>
     
     <div class="button-group">
