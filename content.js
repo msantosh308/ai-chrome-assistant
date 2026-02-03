@@ -185,28 +185,45 @@ function getChatHistoryKey() {
 }
 
 function saveChatHistory(messages) {
-  const key = getChatHistoryKey();
-  chrome.storage.local.set({ [key]: messages }, () => {
-    console.log('Chat history saved for:', key);
-  });
+  try {
+    const key = getChatHistoryKey();
+    chrome.storage.local.set({ [key]: messages }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving chat history:', chrome.runtime.lastError.message);
+      } else {
+        console.log('Chat history saved for:', key);
+      }
+    });
+  } catch (error) {
+    console.error('Error in saveChatHistory:', error);
+  }
 }
 
 function loadChatHistory() {
-  const key = getChatHistoryKey();
-  chrome.storage.local.get([key], (result) => {
-    const history = result[key] || [];
-    if (history.length > 0) {
-      console.log('Loading chat history:', history.length, 'messages');
-      const messagesContainer = document.getElementById('ai-chat-messages');
-      if (messagesContainer) {
-        messagesContainer.innerHTML = '';
-        history.forEach(msg => {
-          restoreMessage(msg);
-        });
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  try {
+    const key = getChatHistoryKey();
+    chrome.storage.local.get([key], (result) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error loading chat history:', chrome.runtime.lastError.message);
+        return;
       }
-    }
-  });
+      
+      const history = result[key] || [];
+      if (history.length > 0) {
+        console.log('Loading chat history:', history.length, 'messages');
+        const messagesContainer = document.getElementById('ai-chat-messages');
+        if (messagesContainer) {
+          messagesContainer.innerHTML = '';
+          history.forEach(msg => {
+            restoreMessage(msg);
+          });
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in loadChatHistory:', error);
+  }
 }
 
 async function loadSuggestions() {
@@ -218,6 +235,12 @@ async function loadSuggestions() {
   
   const key = getChatHistoryKey();
   chrome.storage.local.get([key], async (result) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error loading chat history for suggestions:', chrome.runtime.lastError.message);
+      // Continue with empty history
+      result = {};
+    }
+    
     const history = result[key] || [];
     
     console.log('Loading suggestions...', history.length > 0 ? 'with conversation context' : 'for new conversation');
@@ -448,6 +471,10 @@ function setupResize() {
     chrome.storage.local.set({
       chatWidth: container.style.width,
       chatHeight: container.style.height
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving chat dimensions:', chrome.runtime.lastError.message);
+      }
     });
   }
   
@@ -459,6 +486,11 @@ function setupResize() {
   
   // Load saved size
   chrome.storage.local.get(['chatWidth', 'chatHeight'], (result) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error loading chat dimensions:', chrome.runtime.lastError.message);
+      return;
+    }
+    
     if (result.chatWidth) {
       container.style.width = result.chatWidth;
     }
@@ -858,28 +890,38 @@ function copyImageDataToClipboard(blob) {
 }
 
 function saveMessageToHistory(role, content, responseData = null) {
-  const key = getChatHistoryKey();
-  chrome.storage.local.get([key], (result) => {
-    const history = result[key] || [];
-    const message = {
-      role: role,
-      content: content,
-      timestamp: Date.now()
-    };
-    
-    if (responseData) {
-      message.type = responseData.type;
-      if (responseData.type === 'vega-lite') {
-        message.spec = responseData.spec;
-      } else if (responseData.type === 'markdown') {
-        message.content = responseData.content;
-        message.isHTML = true;
+  try {
+    const key = getChatHistoryKey();
+    chrome.storage.local.get([key], (result) => {
+      // Check for errors
+      if (chrome.runtime.lastError) {
+        console.error('Error loading chat history:', chrome.runtime.lastError.message);
+        return;
       }
-    }
-    
-    history.push(message);
-    saveChatHistory(history);
-  });
+      
+      const history = result[key] || [];
+      const message = {
+        role: role,
+        content: content,
+        timestamp: Date.now()
+      };
+      
+      if (responseData) {
+        message.type = responseData.type;
+        if (responseData.type === 'vega-lite') {
+          message.spec = responseData.spec;
+        } else if (responseData.type === 'markdown') {
+          message.content = responseData.content;
+          message.isHTML = true;
+        }
+      }
+      
+      history.push(message);
+      saveChatHistory(history);
+    });
+  } catch (error) {
+    console.error('Error in saveMessageToHistory:', error);
+  }
 }
 
 function removeMessage(messageId) {
